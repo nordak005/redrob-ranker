@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Redrob Ranker - Candidate Discovery Ranking System
 
 This repository implements **Phase 1 (Development Environment & Data Validation)** of the candidate discovery and ranking engine. It establishes a production-grade development environment, profiles candidate schema properties recursively, estimates dataset memory consumption under constraints, and validates formatting.
@@ -109,3 +110,6 @@ Executes unit tests verifying loader utilities and formatting constraints:
 ```bash
 pytest
 ```
+=======
+# redrob-ranker
+>>>>>>> a14cd9a89af904c5c3ea9bba326c50195fe14190
