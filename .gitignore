@@ -1,0 +1,19 @@
+# Outputs and Models
+outputs/
+models/
+*.npy
+*.parquet
+
+# Python environments and caches
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+.ruff_cache/
+.mypy_cache/
+data/raw/candidates.jsonl.gz
