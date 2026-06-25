@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Large outputs that should be volume-mounted instead
+# (keeps the image lean — mount these at runtime if needed)
+outputs/full_rankings.csv
+outputs/hybrid_rankings.csv
+outputs/semantic_results.csv
+outputs/ai_candidate_profiles.csv
+outputs/retrieval_candidates.csv
+
+# Notebooks (not needed for runtime)
+notebooks/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models cache (will be downloaded on first run if needed)
+models/*.bin
+models/*.pt
+
+# Test artifacts
+.coverage
+htmlcov/

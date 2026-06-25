@@ -147,6 +147,8 @@ _CAREER_TITLE_POINTS: List[Tuple[List[str], float]] = [
 _AI_ASSESSMENT_KEYS: List[str] = [
     "FAISS",
     "Pinecone",
+    "Weaviate",
+    "Qdrant",
     "MLflow",
     "LangChain",
     "PEFT",
@@ -156,6 +158,7 @@ _AI_ASSESSMENT_KEYS: List[str] = [
     "NLP",
     "Feature Engineering",
     "Data Science",
+    "Deep Learning",
 ]
 
 # Case-insensitive lookup map built once
@@ -163,17 +166,23 @@ _AI_ASSESSMENT_KEYS_LOWER: Dict[str, str] = {k.lower(): k for k in _AI_ASSESSMEN
 
 # Weights within the assessment pool (higher weight = more ML-core)
 _ASSESSMENT_WEIGHTS: Dict[str, float] = {
-    "FAISS":                    1.2,
-    "Pinecone":                 1.1,
-    "MLflow":                   1.2,
+    # Vector databases – explicitly required by JD
+    "FAISS":                    1.5,
+    "Pinecone":                 1.4,
+    "Weaviate":                 1.4,   # added: JD-specified vector DB
+    "Qdrant":                   1.4,   # added: JD-specified vector DB
+    # Core ML / retrieval
+    "Recommendation Systems":   1.5,
+    "NLP":                      1.2,
+    "Deep Learning":            1.0,   # added: foundational ML signal
     "PEFT":                     1.2,
-    "Recommendation Systems":   1.3,
-    "NLP":                      1.1,
     "Fine-tuning LLMs":         1.0,
-    "LangChain":                0.9,   # tooling; slightly less weight
-    "Prompt Engineering":       0.7,   # easily gamed / shallow
-    "Feature Engineering":      1.0,
+    "MLflow":                   1.2,
+    "Feature Engineering":      1.1,
+    # Tooling / softer signals
+    "LangChain":                1.0,
     "Data Science":             0.9,
+    "Prompt Engineering":       0.6,   # easily gamed / shallow
 }
 
 # ---------------------------------------------------------------------------
