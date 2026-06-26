@@ -1,0 +1,12 @@
+{
+  "model_name": "all-MiniLM-L6-v2",
+  "num_candidates": 100000,
+  "embedding_dim": 384,
+  "normalized": true,
+  "batch_size": 64,
+  "encode_time_sec": 3251.79,
+  "timestamp_utc": "2026-06-26T07:58:27.707074+00:00",
+  "embeddings_file": "candidate_embeddings.npy",
+  "ids_file": "candidate_ids.npy",
+  "source_file": "candidates.jsonl.gz"
+}

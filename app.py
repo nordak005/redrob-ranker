@@ -8,8 +8,19 @@ identical formula to outputs/hybrid_rankings.csv.
 
 Performance optimisations:
     @st.cache_resource  — MiniLM model loaded ONCE per server session
-    @st.cache_data      — JD embedding computed ONCE per session
+    @st.cache_resource  — Candidate embeddings (100k × 384) loaded ONCE
     local models/       — model stored on disk; no HF network call after first run
+
+Startup sequence:
+    1. Load MiniLM once  (@st.cache_resource)
+    2. Load cached embeddings once  (@st.cache_resource)
+    3. Validate shape / candidate count / metadata
+    4. Display status in sidebar
+
+Runtime (per request):
+    • Encode JD only
+    • Cosine similarity via dot-product on cached matrix
+    • Hybrid feature + embedding score combine
 
 Launch:
     streamlit run app.py
@@ -24,6 +35,7 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -33,20 +45,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from src.hybrid_ranker import hybrid_rank, get_model, get_jd_embedding, JD_TEXT
-
-
-# ── Cached loaders — run ONCE per Streamlit server session ──────────────────
-@st.cache_resource(show_spinner="Loading MiniLM model (first run only)...")
-def _load_model():
-    """Load and cache the SentenceTransformer model — never reloaded on rerun."""
-    return get_model()
-
-
-@st.cache_data(show_spinner="Computing JD embedding...")
-def _load_jd_embedding():
-    """Encode the JD once and cache the vector — reused for every upload."""
-    model = _load_model()
-    return get_jd_embedding(model, JD_TEXT)
+from src.embedding_store import load_embeddings, get_candidate_ids, get_metadata, EmbeddingStoreError
 
 # ── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -141,8 +140,78 @@ st.markdown("""
         border-radius: 10px;
         overflow: hidden;
     }
+
+    .status-panel {
+        background: #0f172a;
+        border: 1px solid #1e3a5f;
+        border-radius: 10px;
+        padding: 0.9rem 1.1rem;
+        margin: 0.4rem 0;
+        font-size: 0.85rem;
+        color: #94a3b8;
+    }
+
+    .timing-panel {
+        background: #0d1b2a;
+        border: 1px solid #22334d;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.82rem;
+        color: #7dd3fc;
+        margin-top: 0.5rem;
+    }
+
+    .timing-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 2px 0;
+    }
+
+    .timing-label { color: #94a3b8; }
+    .timing-value { color: #38bdf8; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ── Cached loaders — run ONCE per Streamlit server session ──────────────────
+
+@st.cache_resource(show_spinner="Loading MiniLM model (first run only)...")
+def _load_model():
+    """
+    Load and cache the SentenceTransformer (all-MiniLM-L6-v2).
+
+    Decorated with @st.cache_resource so Streamlit NEVER reloads this
+    across reruns or multiple ranking requests — it lives in RAM for
+    the entire server session.
+    """
+    return get_model()
+
+
+@st.cache_resource(show_spinner="Loading precomputed candidate embeddings...")
+def _load_precomputed_embeddings():
+    """
+    Load candidate_embeddings.npy + candidate_ids.npy once into RAM.
+
+    Returns (emb_matrix, emb_ids, metadata, error_msg).
+    error_msg is None on success; a friendly string on failure.
+
+    @st.cache_resource ensures these arrays are NEVER reloaded
+    across Streamlit reruns or sequential ranking requests.
+    """
+    try:
+        emb  = load_embeddings()    # (N, 384) float32
+        ids  = get_candidate_ids()  # (N,) str
+        meta = get_metadata()       # dict
+        return emb, ids, meta, None
+    except EmbeddingStoreError as exc:
+        return None, None, {}, str(exc)
+    except Exception as exc:
+        return None, None, {}, f"Unexpected error loading embeddings: {exc}"
+
+
+# ── Trigger startup loading immediately (warm cache before any user action) ─
+_model                                           = _load_model()
+_emb_matrix, _emb_ids, _emb_meta, _emb_error   = _load_precomputed_embeddings()
 
 
 # ── Header ──────────────────────────────────────────────────────────────────
@@ -154,10 +223,70 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ── Startup Validation Panel ─────────────────────────────────────────────────
+with st.expander("🖥️ System Status", expanded=(_emb_error is not None)):
+    col_sys1, col_sys2 = st.columns(2)
+
+    # Model status
+    with col_sys1:
+        if _model is not None:
+            st.success("✓ Model Loaded")
+            st.caption("**Model:** `all-MiniLM-L6-v2`")
+        else:
+            st.error("✗ Model failed to load")
+
+    # Embeddings status
+    with col_sys2:
+        if _emb_error is None and _emb_matrix is not None:
+            n_sys, dim_sys = _emb_matrix.shape
+            st.success(f"✓ {n_sys:,} Candidate Embeddings Loaded")
+            st.caption(f"**Embedding Dimension:** {dim_sys} &nbsp;|&nbsp; **Model:** `all-MiniLM-L6-v2`")
+        else:
+            st.error("✗ Candidate embeddings not loaded")
+            st.warning(
+                "Precomputed embeddings are missing or corrupt.\n\n"
+                "Run the following command to generate them:\n\n"
+                "```bash\npython scripts/generate_embeddings.py\n```\n\n"
+                "This will produce:\n"
+                "- `data/candidate_embeddings.npy`\n"
+                "- `data/candidate_ids.npy`\n"
+                "- `data/embedding_metadata.json`"
+            )
+            if _emb_error:
+                st.caption(f"Error detail: `{_emb_error}`")
+
+
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## ⚙️ Settings")
     top_n = st.slider("Top-N candidates to return", min_value=10, max_value=200, value=100, step=10)
+
+    st.markdown("---")
+    st.markdown("## 🖥️ Model Status")
+    if _model is not None:
+        st.success("✓ Model Loaded")
+        st.caption("`all-MiniLM-L6-v2` · Cached in RAM")
+    else:
+        st.error("✗ Model not loaded")
+
+    st.markdown("---")
+    st.markdown("## 💾 Embeddings Status")
+    if _emb_error is None and _emb_matrix is not None:
+        n_sb, dim_sb = _emb_matrix.shape
+        st.success("✓ Embeddings Ready")
+        st.markdown(f"""
+<div class="status-panel">
+  <b>Candidate Count:</b> {n_sb:,}<br>
+  <b>Embedding Dimension:</b> {dim_sb}<br>
+  <b>Status:</b> Cached in RAM
+</div>
+""", unsafe_allow_html=True)
+    else:
+        st.error("✗ Embeddings not loaded")
+        st.caption("Run `python scripts/generate_embeddings.py`")
+
+    # Per-request timing (populated after each ranking run via st.empty)
+    timing_placeholder = st.empty()
 
     st.markdown("---")
     st.markdown("## 📐 Hybrid Formula")
@@ -168,7 +297,10 @@ hybrid_score =<br>
 &nbsp;&nbsp;+ 0.15 × embedding_score
 </div>
 """, unsafe_allow_html=True)
-    st.caption("feature_score = title + career + retrieval + assessment + skill_trust, scaled 0–100  \nembedding_score = MiniLM cosine similarity × 100")
+    st.caption(
+        "feature_score = title + career + retrieval + assessment + skill_trust, scaled 0–100  \n"
+        "embedding_score = MiniLM cosine similarity × 100"
+    )
 
     st.markdown("---")
     st.markdown("## 📖 Scoring Components")
@@ -199,8 +331,8 @@ Upload a <strong>.jsonl</strong> or <strong>.jsonl.gz</strong> file.
 Each line: a JSON candidate with keys <code>candidate_id</code>, <code>profile</code>,
 <code>career_history</code>, <code>skills</code>, <code>redrob_signals</code>.
 <br><br>
-⏱️ <strong>Timing note:</strong> MiniLM encodes ~1000 candidates in ~10 seconds on CPU.
-For larger uploads (10k+), expect 1–2 minutes.
+⚡ <strong>Cached embeddings active:</strong> Only the JD is encoded per request —
+candidate embeddings are never recomputed.
 </div>
 """, unsafe_allow_html=True)
 
@@ -255,39 +387,109 @@ elif use_sample and sample_path.exists():
 if candidates:
     st.markdown("---")
     n_cands = len(candidates)
-    est_seconds = max(5, int(n_cands * 0.01))   # rough estimate
     st.markdown(f"### 🚀 Hybrid Rank {n_cands:,} Candidates (top-{top_n})")
-    st.info(
-        f"**Estimated time:** ~{est_seconds}–{est_seconds*2}s on CPU "
-        f"(MiniLM encodes {n_cands:,} candidates in batches of 64)",
-        icon="⏱️",
-    )
+
+    _has_cache = _emb_matrix is not None and _emb_ids is not None
+    if _has_cache:
+        st.info(
+            f"**Cached embeddings active** — only the JD will be encoded. "
+            f"Candidate embeddings ({n_cands:,}) will be fetched from the in-memory store (<1 ms).",
+            icon="⚡",
+        )
+    else:
+        est_seconds = max(5, int(n_cands * 0.01))
+        st.info(
+            f"**Estimated time:** ~{est_seconds}–{est_seconds*2}s on CPU "
+            f"(MiniLM encodes {n_cands:,} candidates in batches of 64)",
+            icon="⏱️",
+        )
 
     run_btn = st.button("▶ Run Hybrid Ranker", type="primary", use_container_width=False)
 
     if run_btn:
-        # Model and JD embedding are cached — only encoding candidate texts varies
-        _model   = _load_model()
-        _jd_emb  = _load_jd_embedding()
-        est_encode = max(2, int(n_cands * 0.008))
-        with st.spinner(
-            f"Encoding {n_cands:,} candidates with MiniLM (~{est_encode}s) "
-            f"+ feature scoring..."
-        ):
-            t0 = time.perf_counter()
+        # ── Step A: Align cached embeddings to the uploaded batch ────────────
+        precomputed_aligned = None
+        if _has_cache:
+            id_to_idx = {str(cid): i for i, cid in enumerate(_emb_ids)}
+            aligned_rows = []
+            for cand in candidates:
+                cid = str(cand.get("candidate_id", "UNKNOWN"))
+                if cid in id_to_idx:
+                    aligned_rows.append(_emb_matrix[id_to_idx[cid]])
+                else:
+                    aligned_rows.append(None)
+
+            if any(r is not None for r in aligned_rows):
+                dim = _emb_matrix.shape[1]
+                precomputed_aligned = np.array(
+                    [r if r is not None else np.zeros(dim, dtype=np.float32)
+                     for r in aligned_rows],
+                    dtype=np.float32,
+                )
+
+        spinner_msg = (
+            f"Scoring {n_cands:,} candidates using cached embeddings (<2s)..."
+            if precomputed_aligned is not None else
+            f"Encoding {n_cands:,} candidates with MiniLM + feature scoring..."
+        )
+
+        with st.spinner(spinner_msg):
+            # Step B: Encode JD only — model is already cached in RAM
+            t_jd0 = time.perf_counter()
+            _jd_emb = get_jd_embedding(_model, JD_TEXT)
+            t_jd_elapsed = time.perf_counter() - t_jd0
+
+            # Step C: Cosine similarity — dot product on the aligned cache slice
+            if precomputed_aligned is not None:
+                t_sim0 = time.perf_counter()
+                _ = precomputed_aligned @ _jd_emb   # warm measurement; hybrid_rank repeats internally
+                t_sim_elapsed = time.perf_counter() - t_sim0
+            else:
+                t_sim_elapsed = 0.0
+
+            # Step D: Full hybrid ranking (feature scores + embedding combine)
+            t_rank0 = time.perf_counter()
             ranked = hybrid_rank(
                 candidates=candidates,
                 top_n=top_n,
                 show_progress=False,
                 model=_model,
                 jd_emb=_jd_emb,
+                precomputed_embs=precomputed_aligned,
             )
-            elapsed = time.perf_counter() - t0
+            t_rank_elapsed = time.perf_counter() - t_rank0
+
+        total_elapsed = t_jd_elapsed + t_sim_elapsed + t_rank_elapsed
 
         st.success(
-            f"✅ Hybrid-ranked {n_cands:,} candidates in **{elapsed:.1f}s** "
+            f"✅ Hybrid-ranked {n_cands:,} candidates in **{total_elapsed:.2f}s** "
             f"— showing top {len(ranked)}"
         )
+
+        # ── Update sidebar timing panel ──────────────────────────────────────
+        with timing_placeholder.container():
+            st.markdown("---")
+            st.markdown("## ⏱️ Last Run Timing")
+            st.markdown(f"""
+<div class="timing-panel">
+  <div class="timing-row">
+    <span class="timing-label">JD Encoding</span>
+    <span class="timing-value">{t_jd_elapsed*1000:.1f} ms</span>
+  </div>
+  <div class="timing-row">
+    <span class="timing-label">Similarity Search</span>
+    <span class="timing-value">{t_sim_elapsed*1000:.1f} ms</span>
+  </div>
+  <div class="timing-row">
+    <span class="timing-label">Hybrid Ranking</span>
+    <span class="timing-value">{t_rank_elapsed*1000:.1f} ms</span>
+  </div>
+  <div class="timing-row" style="border-top:1px solid #22334d;margin-top:4px;padding-top:4px;">
+    <span class="timing-label"><b>Total Runtime</b></span>
+    <span class="timing-value">{total_elapsed*1000:.1f} ms</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
         # ── Metrics row ──────────────────────────────────────────────────────
         st.markdown("#### 📊 Quick Stats")
@@ -322,7 +524,7 @@ if candidates:
         with m5:
             st.markdown(f"""
             <div class="metric-card">
-                <div class="value">{elapsed:.1f}s</div>
+                <div class="value">{total_elapsed:.2f}s</div>
                 <div class="label">Runtime</div>
             </div>""", unsafe_allow_html=True)
 

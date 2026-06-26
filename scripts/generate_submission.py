@@ -14,10 +14,10 @@ Runtime target: < 5 minutes on CPU (16 GB RAM).
 
 Pipeline:
     1. Load candidates from data/raw/candidates.jsonl.gz
-    2. Load hybrid scores from outputs/hybrid_rankings.csv
-    3. Merge hybrid_score into feature-ranked candidates (top-100 by hybrid_rank)
-    4. Generate natural-language reasoning via src.reasoning.build_reasoning()
-    5. Write outputs/final_submission.csv
+    2. Compute feature scores
+    3. Load precomputed embeddings & compute semantic similarity
+    4. Compute hybrid_score = 0.85 * feature_score + 0.15 * embedding_score
+    5. Take top 100, generate reasoning, write output
     6. Validate the output against submission rules
 """
 
@@ -38,6 +38,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from src.features import build_final_score
 from src.reasoning import build_reasoning
+from src.semantic_search import get_score_lookup
 
 # ── Logging ────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -49,10 +50,8 @@ logger = logging.getLogger(__name__)
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 CANDIDATES_PATH   = _PROJECT_ROOT / "data" / "raw" / "candidates.jsonl.gz"
-HYBRID_CSV_PATH   = _PROJECT_ROOT / "outputs" / "hybrid_rankings.csv"
 OUTPUT_PATH       = _PROJECT_ROOT / "outputs" / "final_submission.csv"
 TOP_N             = 100
-
 
 # ---------------------------------------------------------------------------
 # Loaders
@@ -76,25 +75,6 @@ def load_candidates_gz(path: Path) -> dict[str, dict]:
     logger.info("Loaded %d candidates in %.2f s.", len(candidates), elapsed)
     return candidates
 
-
-def load_hybrid_top100(path: Path) -> list[dict]:
-    """
-    Load the top-100 candidates by hybrid_rank from hybrid_rankings.csv.
-    Returns a list of dicts sorted by hybrid_rank ascending.
-    """
-    logger.info("Loading hybrid scores from %s ...", path)
-    rows = []
-    with open(str(path), "r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            hybrid_rank = int(row.get("hybrid_rank", 999999))
-            if hybrid_rank <= TOP_N:
-                rows.append(row)
-    rows.sort(key=lambda r: int(r["hybrid_rank"]))
-    logger.info("Loaded %d hybrid-ranked candidates.", len(rows))
-    return rows
-
-
 # ---------------------------------------------------------------------------
 # CSV writer
 # ---------------------------------------------------------------------------
@@ -114,7 +94,6 @@ def write_final_submission(records: list[dict], output_path: Path) -> None:
                 "reasoning":    r["reasoning"],
             })
     logger.info("Wrote %d rows to %s", len(records), output_path)
-
 
 # ---------------------------------------------------------------------------
 # Validation
@@ -146,7 +125,6 @@ def validate_submission(records: list[dict]) -> bool:
     logger.info("✅ Validation PASSED: 100 rows, ranks 1–100, scores decreasing, all IDs unique.")
     return True
 
-
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -158,83 +136,79 @@ def main() -> int:
 
     t_start = time.perf_counter()
 
-    # ── Step 1: Load hybrid top-100 ────────────────────────────────────────
-    if not HYBRID_CSV_PATH.exists():
-        logger.error("hybrid_rankings.csv not found at %s", HYBRID_CSV_PATH)
-        logger.error("Run the hybrid ranking pipeline first.")
-        return 1
-
-    hybrid_rows = load_hybrid_top100(HYBRID_CSV_PATH)
-
-    if len(hybrid_rows) < TOP_N:
-        logger.error(
-            "Only %d hybrid-ranked candidates found (need %d).",
-            len(hybrid_rows), TOP_N
-        )
-        return 1
-
-    # ── Step 2: Load full candidate profiles ───────────────────────────────
+    # ── Step 1: Load full candidate profiles ───────────────────────────────
     if not CANDIDATES_PATH.exists():
         logger.error("Candidates file not found at %s", CANDIDATES_PATH)
         return 1
 
-    # We only need profiles for the top-100 hybrid candidates
-    top_ids = {r["candidate_id"] for r in hybrid_rows}
-    logger.info("Loading candidate profiles for top %d hybrid candidates...", len(top_ids))
-    t0 = time.perf_counter()
-    candidate_map: dict[str, dict] = {}
-    with gzip.open(str(CANDIDATES_PATH), "rt", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            record = json.loads(line)
-            cid = record.get("candidate_id", "")
-            if cid in top_ids:
-                candidate_map[cid] = record
-                if len(candidate_map) == len(top_ids):
-                    break  # Early exit once all top candidates found
-    elapsed = time.perf_counter() - t0
-    logger.info(
-        "Loaded %d candidate profiles in %.2f s.",
-        len(candidate_map), elapsed
-    )
+    candidate_map = load_candidates_gz(CANDIDATES_PATH)
+    if not candidate_map:
+        logger.error("No candidates loaded.")
+        return 1
 
-    # ── Step 3: Build final submission records ─────────────────────────────
+    # ── Step 2: Semantic search via precomputed embeddings ─────────────────
+    logger.info("Fetching semantic scores using precomputed embeddings...")
+    semantic_scores = get_score_lookup()  # returns dict[candidate_id, embedding_score]
+
+    # ── Step 3: Compute feature scores and hybrid scores ───────────────────
+    logger.info("Computing feature scores and hybrid rankings...")
+    scored_candidates = []
+    
+    t0 = time.perf_counter()
+    for cid, candidate in candidate_map.items():
+        # Feature score
+        try:
+            scores = build_final_score(candidate)
+            feature_score = scores.get("final_score", 0.0) * 100.0
+        except Exception as exc:
+            logger.warning("Score computation failed for %s: %s", cid, exc)
+            feature_score = 0.0
+            scores = {}
+
+        # Semantic score
+        embedding_score = semantic_scores.get(cid, 0.0)
+        
+        # Hybrid score
+        hybrid_score = 0.85 * feature_score + 0.15 * embedding_score
+
+        scored_candidates.append({
+            "candidate_id": cid,
+            "candidate_obj": candidate,
+            "feature_scores_dict": scores,
+            "hybrid_score": hybrid_score
+        })
+        
+    elapsed = time.perf_counter() - t0
+    logger.info("Computed hybrid scores for %d candidates in %.2f s", len(scored_candidates), elapsed)
+
+    # ── Step 4: Sort and take top 100 ──────────────────────────────────────
+    scored_candidates.sort(key=lambda x: (-x["hybrid_score"], x["candidate_id"]))
+    top_candidates = scored_candidates[:TOP_N]
+
+    # ── Step 5: Build final submission records ─────────────────────────────
     logger.info("Generating reasoning for top-%d candidates...", TOP_N)
     submission_records = []
 
-    for hybrid_row in hybrid_rows:
-        cid = hybrid_row["candidate_id"]
-        hybrid_rank = int(hybrid_row["hybrid_rank"])
-        hybrid_score = float(hybrid_row["hybrid_score"])
-
-        candidate = candidate_map.get(cid)
-        if candidate is None:
-            logger.warning("Profile not found for %s — using empty profile.", cid)
-            candidate = {"candidate_id": cid}
-
-        # Compute feature scores for the reasoning generator
-        try:
-            scores = build_final_score(candidate)
-        except Exception as exc:
-            logger.warning("Score computation failed for %s: %s", cid, exc)
-            scores = {}
+    for rank_idx, cand_info in enumerate(top_candidates, start=1):
+        cid = cand_info["candidate_id"]
+        hybrid_score = cand_info["hybrid_score"]
+        candidate = cand_info["candidate_obj"]
+        scores = cand_info["feature_scores_dict"]
 
         # Generate natural-language reasoning
         reasoning = build_reasoning(candidate, scores)
 
         submission_records.append({
             "candidate_id": cid,
-            "rank":         hybrid_rank,
+            "rank":         rank_idx,
             "score":        hybrid_score,
             "reasoning":    reasoning,
         })
 
-    # ── Step 4: Write CSV ──────────────────────────────────────────────────
+    # ── Step 6: Write CSV ──────────────────────────────────────────────────
     write_final_submission(submission_records, OUTPUT_PATH)
 
-    # ── Step 5: Validate ───────────────────────────────────────────────────
+    # ── Step 7: Validate ───────────────────────────────────────────────────
     try:
         validate_submission(submission_records)
     except AssertionError as e:
@@ -244,7 +218,7 @@ def main() -> int:
     # ── Summary ────────────────────────────────────────────────────────────
     total_time = time.perf_counter() - t_start
     logger.info("=" * 60)
-    logger.info("DONE. Total time: %.2f s (%.2f min)", total_time, total_time / 60)
+    logger.info("DONE. Total time: %.2f s", total_time)
     logger.info("Final submission: %s", OUTPUT_PATH.resolve())
     logger.info("=" * 60)
 

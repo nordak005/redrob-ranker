@@ -74,7 +74,20 @@ Pinecone is a managed, cloud-hosted vector database. It is incompatible with thi
 
 ---
 
-## Q5: Why hybrid ranking? Why not pure feature or pure embedding?
+## Q5: Why precompute embeddings?
+
+**Answer:**
+
+Encoding 100,000 candidates live on CPU takes 1000–2000 seconds. For a production search system (or Streamlit sandbox), waiting 15+ minutes per query is unacceptable.
+
+By precomputing the embeddings offline:
+1. **Candidate profiles change slowly:** Candidates update their profiles infrequently, while Job Descriptions change per search. We only need to encode candidates once.
+2. **Fast query time:** At query time, we only encode the single JD (< 1s) and compute a matrix-vector dot product (`embeddings @ jd_emb`), which takes < 2s for 100k candidates.
+3. **Stateless scaling:** The precomputed embedding matrix (`candidate_embeddings.npy`) can be loaded into memory as a singleton, completely decoupling the slow encoding step from the fast search step. This is standard practice in FAISS/vector search architectures.
+
+---
+
+## Q6: Why hybrid ranking? Why not pure feature or pure embedding?
 
 **Answer:**
 
@@ -94,7 +107,7 @@ hybrid_score = 0.85 × feature_score + 0.15 × embedding_score
 
 ---
 
-## Q6: Why use embeddings at all if the feature ranker is so precise?
+## Q7: Why use embeddings at all if the feature ranker is so precise?
 
 **Answer:**
 
@@ -108,7 +121,7 @@ The 15% embedding weight is a deliberate minimum — enough to surface these can
 
 ---
 
-## Q7: How would you scale to 10 million candidates?
+## Q8: How would you scale to 10 million candidates?
 
 **Answer:**
 
@@ -142,7 +155,7 @@ The 15% embedding weight is a deliberate minimum — enough to surface these can
 
 ---
 
-## Q8: Describe your production architecture for a real Redrob deployment
+## Q9: Describe your production architecture for a real Redrob deployment
 
 **Answer:**
 

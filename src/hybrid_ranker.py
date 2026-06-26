@@ -188,6 +188,7 @@ def hybrid_rank(
     show_progress: bool = False,
     model=None,
     jd_emb: Optional[np.ndarray] = None,
+    precomputed_embs: Optional[np.ndarray] = None,
 ) -> List[Dict[str, Any]]:
     """
     Score all candidates with the hybrid formula and return top-N.
@@ -196,16 +197,24 @@ def hybrid_rank(
         hybrid_score = 0.85 × (final_score × 100)
                      + 0.15 × (cosine_similarity × 100)
 
+    Embedding strategy (in priority order):
+        1. precomputed_embs  — caller passes a precomputed embedding matrix
+                                (N_uploaded, 384) aligned to the candidates list.
+        2. Embedding store   — load data/candidate_embeddings.npy and look up
+                                each candidate by candidate_id. Candidate encoding
+                                is SKIPPED entirely (< 2s for 100k).
+        3. Live encoding     — encode candidate texts on the fly (slow, fallback).
+
     Parameters
     ----------
-    candidates   : list of candidate dicts
-    top_n        : number of results to return (default 100)
-    jd_text      : job description text (used if jd_emb not provided)
-    batch_size   : MiniLM encoding batch size (64 is optimal for CPU)
-    show_progress: tqdm progress bar during encoding
-    model        : pre-loaded SentenceTransformer (from @st.cache_resource)
-    jd_emb       : pre-computed JD embedding ndarray (from @st.cache_data)
-                   Passing these avoids model reload on every Streamlit rerun.
+    candidates      : list of candidate dicts
+    top_n           : number of results to return (default 100)
+    jd_text         : job description text (used if jd_emb not provided)
+    batch_size      : MiniLM encoding batch size (64 is optimal for CPU)
+    show_progress   : tqdm progress bar during live encoding
+    model           : pre-loaded SentenceTransformer (from @st.cache_resource)
+    jd_emb          : pre-computed JD embedding ndarray (from @st.cache_data)
+    precomputed_embs: (N, 384) float32 aligned to candidates list (optional)
 
     Returns
     -------
@@ -239,14 +248,67 @@ def hybrid_rank(
             }
         feature_results.append((cand, scores))
 
-    # ── Step 2: Candidate text → embeddings ───────────────────────────────
-    texts = [_candidate_text(cand) for cand, _ in feature_results]
-    candidate_embeddings = _model.encode(
-        texts,
-        normalize_embeddings=True,
-        batch_size=batch_size,
-        show_progress_bar=show_progress,
-    )
+    # ── Step 2: Embedding scores — use precomputed store when available ──────
+    if precomputed_embs is not None:
+        # Caller already resolved embeddings (e.g. from store, aligned to candidates)
+        candidate_embeddings = precomputed_embs
+        logger.info("Using caller-provided precomputed embeddings (%d rows).", len(candidate_embeddings))
+
+    else:
+        # Try to look up from the precomputed embedding store
+        try:
+            from src.embedding_store import load_embeddings, get_candidate_ids, EmbeddingStoreError
+            store_emb = load_embeddings()           # (N_total, 384)
+            store_ids = get_candidate_ids()         # (N_total,)
+            id_to_idx = {str(sid): i for i, sid in enumerate(store_ids)}
+
+            # Look up each candidate's row in the store
+            rows = []
+            missing = []
+            for cand, _ in feature_results:
+                cid = cand.get("candidate_id", "UNKNOWN")
+                if cid in id_to_idx:
+                    rows.append(store_emb[id_to_idx[cid]])
+                else:
+                    missing.append(cid)
+                    rows.append(None)
+
+            if missing:
+                logger.warning(
+                    "%d candidates not found in embedding store; falling back to live encoding for them.",
+                    len(missing),
+                )
+
+            # Fill missing rows with live encoding
+            if missing:
+                missing_texts = [
+                    _candidate_text(cand)
+                    for cand, _ in feature_results
+                    if cand.get("candidate_id", "UNKNOWN") in set(missing)
+                ]
+                live_embs = _model.encode(
+                    missing_texts, normalize_embeddings=True,
+                    batch_size=batch_size, show_progress_bar=show_progress,
+                )
+                live_iter = iter(live_embs)
+                for i, row in enumerate(rows):
+                    if row is None:
+                        rows[i] = next(live_iter)
+
+            candidate_embeddings = np.stack(rows)  # (N, 384)
+            logger.info("Embeddings resolved from store (%d rows).", len(candidate_embeddings))
+
+        except Exception as exc:
+            # Store not available — fall back to live encoding (Streamlit upload scenario)
+            logger.info("Embedding store unavailable (%s); encoding candidates live.", exc)
+            texts = [_candidate_text(cand) for cand, _ in feature_results]
+            candidate_embeddings = _model.encode(
+                texts,
+                normalize_embeddings=True,
+                batch_size=batch_size,
+                show_progress_bar=show_progress,
+            )
+
     # L2-normalised → dot product == cosine similarity
     similarity_scores: np.ndarray = candidate_embeddings @ _jd
 
