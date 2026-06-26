@@ -1,5 +1,4 @@
 # Outputs and Models
-outputs/
 models/
 *.npy
 *.parquet

@@ -1,0 +1,101 @@
+candidate_id,rank,score,reasoning
+CAND_0081686,1,0.924575,Search Engineer | 6.0 yrs exp | 3 AI role(s) in career | assess=12.9 | resp_rate=0.91 | mult=1.150
+CAND_0000031,2,0.913180,Recommendation Systems Engineer | 6.0 yrs exp | 4 AI role(s) in career | assess=9.9 | resp_rate=0.91 | mult=1.150
+CAND_0041669,3,0.911679,Recommendation Systems Engineer | 8.0 yrs exp | 3 AI role(s) in career | assess=12.6 | resp_rate=0.77 | mult=1.150
+CAND_0039754,4,0.903298,Senior Applied Scientist | 16.2 yrs exp | 3 AI role(s) in career | assess=13.2 | resp_rate=0.81 | mult=1.150
+CAND_0084819,5,0.897213,Search Engineer | 4.5 yrs exp | 2 AI role(s) in career | assess=13.4 | resp_rate=0.74 | mult=1.150
+CAND_0071974,6,0.888954,Senior AI Engineer | 7.8 yrs exp | 3 AI role(s) in career | assess=12.8 | resp_rate=0.76 | mult=1.150
+CAND_0018549,7,0.887700,Recommendation Systems Engineer | 6.8 yrs exp | 2 AI role(s) in career | assess=9.7 | resp_rate=0.73 | mult=1.150
+CAND_0088025,8,0.886324,Staff Machine Learning Engineer | 8.6 yrs exp | 3 AI role(s) in career | assess=14.0 | resp_rate=0.83 | mult=1.150
+CAND_0050876,9,0.879854,Applied ML Engineer | 6.0 yrs exp | 3 AI role(s) in career | assess=12.2 | resp_rate=0.67 | mult=1.150
+CAND_0042506,10,0.877413,Search Engineer | 4.2 yrs exp | 2 AI role(s) in career | assess=10.3 | resp_rate=0.48 | mult=1.150
+CAND_0046525,11,0.875151,Senior Machine Learning Engineer | 6.1 yrs exp | 2 AI role(s) in career | assess=14.5 | resp_rate=0.88 | mult=1.150
+CAND_0079387,12,0.873581,AI Engineer | 6.9 yrs exp | 4 AI role(s) in career | assess=12.7 | resp_rate=0.81 | mult=1.150
+CAND_0049538,13,0.871612,Applied ML Engineer | 5.8 yrs exp | 3 AI role(s) in career | assess=12.0 | resp_rate=0.72 | mult=1.150
+CAND_0026532,14,0.866677,Recommendation Systems Engineer | 4.8 yrs exp | 2 AI role(s) in career | assess=13.6 | resp_rate=0.52 | mult=1.090
+CAND_0066999,15,0.866551,Recommendation Systems Engineer | 5.9 yrs exp | 2 AI role(s) in career | assess=11.9 | resp_rate=0.63 | mult=1.150
+CAND_0061265,16,0.865176,Recommendation Systems Engineer | 6.6 yrs exp | 3 AI role(s) in career | assess=10.3 | resp_rate=0.94 | mult=1.150
+CAND_0053591,17,0.860154,AI Engineer | 5.3 yrs exp | 2 AI role(s) in career | assess=13.5 | resp_rate=0.81 | mult=1.150
+CAND_0020708,18,0.859577,Search Engineer | 4.2 yrs exp | 1 AI role(s) in career | assess=9.7 | resp_rate=0.84 | mult=1.150
+CAND_0013536,19,0.859033,Applied ML Engineer | 14.1 yrs exp | 2 AI role(s) in career | assess=10.3 | resp_rate=0.87 | mult=1.150
+CAND_0086022,20,0.857266,Senior Applied Scientist | 5.3 yrs exp | 2 AI role(s) in career | assess=11.8 | resp_rate=0.55 | mult=1.150
+CAND_0027801,21,0.856999,NLP Engineer | 7.4 yrs exp | 3 AI role(s) in career | assess=12.2 | resp_rate=0.65 | mult=1.122
+CAND_0055992,22,0.856617,AI Engineer | 16.9 yrs exp | 4 AI role(s) in career | assess=9.3 | resp_rate=0.72 | mult=1.150
+CAND_0036184,23,0.855623,Recommendation Systems Engineer | 6.0 yrs exp | 2 AI role(s) in career | assess=8.3 | resp_rate=0.90 | mult=1.150
+CAND_0086151,24,0.852529,Recommendation Systems Engineer | 7.7 yrs exp | 3 AI role(s) in career | assess=11.1 | resp_rate=0.52 | mult=1.062
+CAND_0037000,25,0.852294,Search Engineer | 2.7 yrs exp | 3 AI role(s) in career | assess=7.7 | resp_rate=0.61 | mult=1.135
+CAND_0009024,26,0.848458,Search Engineer | 5.2 yrs exp | 2 AI role(s) in career | assess=12.9 | resp_rate=0.46 | mult=1.091
+CAND_0041568,27,0.848225,Search Engineer | 5.2 yrs exp | 3 AI role(s) in career | assess=11.8 | resp_rate=0.52 | mult=1.087
+CAND_0081846,28,0.842919,Lead AI Engineer | 6.7 yrs exp | 2 AI role(s) in career | assess=9.4 | resp_rate=0.73 | mult=1.150
+CAND_0075249,29,0.841866,Applied ML Engineer | 6.2 yrs exp | 2 AI role(s) in career | assess=8.4 | resp_rate=0.82 | mult=1.150
+CAND_0088378,30,0.840772,AI Research Engineer | 6.0 yrs exp | 4 AI role(s) in career | assess=12.6 | resp_rate=0.58 | mult=1.150
+CAND_0057701,31,0.838667,Recommendation Systems Engineer | 4.1 yrs exp | 1 AI role(s) in career | assess=13.3 | resp_rate=0.56 | mult=1.090
+CAND_0096142,32,0.838139,Applied ML Engineer | 5.0 yrs exp | 2 AI role(s) in career | assess=12.3 | resp_rate=0.84 | mult=1.150
+CAND_0043381,33,0.838093,AI Research Engineer | 3.6 yrs exp | 1 AI role(s) in career | assess=11.2 | resp_rate=0.78 | mult=1.150
+CAND_0093331,34,0.837351,NLP Engineer | 16.1 yrs exp | 3 AI role(s) in career | assess=10.6 | resp_rate=0.41 | mult=1.136
+CAND_0054318,35,0.833637,AI Research Engineer | 3.5 yrs exp | 1 AI role(s) in career | assess=11.4 | resp_rate=0.87 | mult=1.150
+CAND_0005260,36,0.833614,Senior NLP Engineer | 5.2 yrs exp | 2 AI role(s) in career | assess=12.1 | resp_rate=0.86 | mult=1.150
+CAND_0095619,37,0.833288,NLP Engineer | 15.6 yrs exp | 1 AI role(s) in career | assess=11.1 | resp_rate=0.90 | mult=1.150
+CAND_0043228,38,0.832557,Applied ML Engineer | 6.8 yrs exp | 3 AI role(s) in career | assess=12.4 | resp_rate=0.41 | mult=1.093
+CAND_0007412,39,0.832281,Applied ML Engineer | 7.4 yrs exp | 5 AI role(s) in career | assess=7.5 | resp_rate=0.76 | mult=1.139
+CAND_0020350,40,0.829294,AI Engineer | 5.8 yrs exp | 2 AI role(s) in career | assess=13.1 | resp_rate=0.58 | mult=1.150
+CAND_0070333,41,0.826541,AI Research Engineer | 4.7 yrs exp | 2 AI role(s) in career | assess=11.7 | resp_rate=0.48 | mult=1.114
+CAND_0006567,42,0.825156,Senior AI Engineer | 7.9 yrs exp | 3 AI role(s) in career | assess=13.3 | resp_rate=0.79 | mult=1.150
+CAND_0037566,43,0.825010,Machine Learning Engineer | 6.9 yrs exp | 2 AI role(s) in career | assess=12.4 | resp_rate=0.50 | mult=1.150
+CAND_0039383,44,0.824481,Applied ML Engineer | 7.1 yrs exp | 3 AI role(s) in career | assess=9.6 | resp_rate=0.61 | mult=1.150
+CAND_0030031,45,0.823262,AI Engineer | 5.7 yrs exp | 3 AI role(s) in career | assess=9.5 | resp_rate=0.94 | mult=1.150
+CAND_0016432,46,0.823249,AI Research Engineer | 4.6 yrs exp | 2 AI role(s) in career | assess=11.1 | resp_rate=0.60 | mult=1.135
+CAND_0096801,47,0.821940,AI Research Engineer | 4.2 yrs exp | 2 AI role(s) in career | assess=10.1 | resp_rate=0.57 | mult=1.133
+CAND_0025640,48,0.821903,AI Research Engineer | 5.6 yrs exp | 2 AI role(s) in career | assess=11.2 | resp_rate=0.87 | mult=1.150
+CAND_0076251,49,0.821717,Search Engineer | 7.6 yrs exp | 3 AI role(s) in career | assess=10.3 | resp_rate=0.51 | mult=1.124
+CAND_0027691,50,0.821024,NLP Engineer | 6.5 yrs exp | 3 AI role(s) in career | assess=8.8 | resp_rate=0.68 | mult=1.150
+CAND_0012957,51,0.820988,Search Engineer | 4.9 yrs exp | 2 AI role(s) in career | assess=10.5 | resp_rate=0.67 | mult=1.084
+CAND_0009691,52,0.819682,Applied ML Engineer | 6.2 yrs exp | 3 AI role(s) in career | assess=9.5 | resp_rate=0.64 | mult=1.126
+CAND_0075574,53,0.819136,Machine Learning Engineer | 5.7 yrs exp | 3 AI role(s) in career | assess=7.8 | resp_rate=0.58 | mult=1.141
+CAND_0064904,54,0.817792,AI Engineer | 4.9 yrs exp | 2 AI role(s) in career | assess=10.5 | resp_rate=0.78 | mult=1.150
+CAND_0001940,55,0.816034,AI Research Engineer | 4.3 yrs exp | 2 AI role(s) in career | assess=11.3 | resp_rate=0.87 | mult=1.125
+CAND_0074317,56,0.815442,AI Research Engineer | 4.2 yrs exp | 2 AI role(s) in career | assess=10.1 | resp_rate=0.86 | mult=1.150
+CAND_0079284,57,0.815076,Machine Learning Engineer | 4.9 yrs exp | 2 AI role(s) in career | assess=10.3 | resp_rate=0.79 | mult=1.150
+CAND_0006557,58,0.813757,NLP Engineer | 7.9 yrs exp | 2 AI role(s) in career | assess=11.4 | resp_rate=0.63 | mult=1.072
+CAND_0054123,59,0.813637,Applied ML Engineer | 4.7 yrs exp | 2 AI role(s) in career | assess=9.5 | resp_rate=0.87 | mult=1.150
+CAND_0010541,60,0.805902,AI Research Engineer | 6.2 yrs exp | 2 AI role(s) in career | assess=6.7 | resp_rate=0.59 | mult=1.142
+CAND_0017590,61,0.805661,AI Research Engineer | 5.1 yrs exp | 2 AI role(s) in career | assess=9.4 | resp_rate=0.56 | mult=1.135
+CAND_0040887,62,0.804635,Machine Learning Engineer | 4.7 yrs exp | 2 AI role(s) in career | assess=10.6 | resp_rate=0.84 | mult=1.150
+CAND_0016659,63,0.804204,ML Engineer | 4.4 yrs exp | 2 AI role(s) in career | assess=10.3 | resp_rate=0.89 | mult=1.150
+CAND_0011162,64,0.801898,Recommendation Systems Engineer | 5.8 yrs exp | 3 AI role(s) in career | assess=0.0 | resp_rate=0.75 | mult=1.150
+CAND_0013393,65,0.801248,ML Engineer | 5.3 yrs exp | 4 AI role(s) in career | assess=11.9 | resp_rate=0.33 | mult=1.101
+CAND_0050146,66,0.800042,AI Research Engineer | 3.2 yrs exp | 2 AI role(s) in career | assess=10.4 | resp_rate=0.50 | mult=1.113
+CAND_0059017,67,0.799246,AI Research Engineer | 6.8 yrs exp | 2 AI role(s) in career | assess=10.4 | resp_rate=0.75 | mult=1.150
+CAND_0088049,68,0.799029,Junior ML Engineer | 5.9 yrs exp | 3 AI role(s) in career | assess=10.0 | resp_rate=0.78 | mult=1.150
+CAND_0060715,69,0.798388,ML Engineer | 3.3 yrs exp | 1 AI role(s) in career | assess=12.5 | resp_rate=0.86 | mult=1.150
+CAND_0004402,70,0.798369,AI Research Engineer | 6.0 yrs exp | 2 AI role(s) in career | assess=7.7 | resp_rate=0.83 | mult=1.150
+CAND_0041610,71,0.797895,Recommendation Systems Engineer | 6.7 yrs exp | 4 AI role(s) in career | assess=0.0 | resp_rate=0.52 | mult=1.148
+CAND_0076163,72,0.797364,NLP Engineer | 6.9 yrs exp | 2 AI role(s) in career | assess=7.6 | resp_rate=0.84 | mult=1.150
+CAND_0074225,73,0.797212,Machine Learning Engineer | 4.3 yrs exp | 2 AI role(s) in career | assess=8.8 | resp_rate=0.91 | mult=1.150
+CAND_0022274,74,0.796967,AI Research Engineer | 4.5 yrs exp | 2 AI role(s) in career | assess=10.4 | resp_rate=0.44 | mult=1.126
+CAND_0032515,75,0.796394,Machine Learning Engineer | 5.1 yrs exp | 3 AI role(s) in career | assess=7.8 | resp_rate=0.54 | mult=1.133
+CAND_0083307,76,0.794691,Search Engineer | 7.8 yrs exp | 4 AI role(s) in career | assess=0.0 | resp_rate=0.70 | mult=1.134
+CAND_0024466,77,0.793161,Search Engineer | 5.2 yrs exp | 2 AI role(s) in career | assess=11.2 | resp_rate=0.47 | mult=1.034
+CAND_0077285,78,0.792649,Recommendation Systems Engineer | 5.5 yrs exp | 3 AI role(s) in career | assess=0.0 | resp_rate=0.56 | mult=1.150
+CAND_0007009,79,0.791318,Recommendation Systems Engineer | 7.9 yrs exp | 3 AI role(s) in career | assess=0.0 | resp_rate=0.62 | mult=1.150
+CAND_0053695,80,0.791122,Recommendation Systems Engineer | 5.8 yrs exp | 3 AI role(s) in career | assess=0.0 | resp_rate=0.60 | mult=1.150
+CAND_0083879,81,0.790818,Machine Learning Engineer | 7.1 yrs exp | 3 AI role(s) in career | assess=9.5 | resp_rate=0.47 | mult=1.122
+CAND_0024990,82,0.790505,Junior ML Engineer | 5.2 yrs exp | 2 AI role(s) in career | assess=11.5 | resp_rate=0.83 | mult=1.150
+CAND_0010770,83,0.790407,Recommendation Systems Engineer | 15.2 yrs exp | 4 AI role(s) in career | assess=0.0 | resp_rate=0.73 | mult=1.150
+CAND_0075138,84,0.789639,AI Research Engineer | 4.6 yrs exp | 3 AI role(s) in career | assess=12.3 | resp_rate=0.46 | mult=1.083
+CAND_0023458,85,0.789432,AI Research Engineer | 5.0 yrs exp | 2 AI role(s) in career | assess=6.7 | resp_rate=0.69 | mult=1.145
+CAND_0080315,86,0.789291,AI Research Engineer | 4.1 yrs exp | 2 AI role(s) in career | assess=11.3 | resp_rate=0.29 | mult=1.082
+CAND_0036437,87,0.788994,Search Engineer | 4.8 yrs exp | 3 AI role(s) in career | assess=0.0 | resp_rate=0.87 | mult=1.150
+CAND_0094759,88,0.787938,Lead AI Engineer | 8.6 yrs exp | 3 AI role(s) in career | assess=12.1 | resp_rate=0.11 | mult=1.043
+CAND_0070398,89,0.787318,Machine Learning Engineer | 7.2 yrs exp | 3 AI role(s) in career | assess=7.6 | resp_rate=0.60 | mult=1.093
+CAND_0038099,90,0.786827,Junior ML Engineer | 5.4 yrs exp | 2 AI role(s) in career | assess=10.8 | resp_rate=0.81 | mult=1.150
+CAND_0075439,91,0.786043,Machine Learning Engineer | 4.3 yrs exp | 2 AI role(s) in career | assess=8.2 | resp_rate=0.56 | mult=1.150
+CAND_0077337,92,0.785486,Staff Machine Learning Engineer | 7.0 yrs exp | 4 AI role(s) in career | assess=0.0 | resp_rate=0.95 | mult=1.150
+CAND_0076482,93,0.785377,ML Engineer | 6.6 yrs exp | 3 AI role(s) in career | assess=11.7 | resp_rate=0.86 | mult=1.150
+CAND_0007874,94,0.785339,Junior ML Engineer | 3.7 yrs exp | 2 AI role(s) in career | assess=11.1 | resp_rate=0.75 | mult=1.138
+CAND_0093193,95,0.784780,Senior Machine Learning Engineer | 7.9 yrs exp | 2 AI role(s) in career | assess=9.6 | resp_rate=0.61 | mult=1.150
+CAND_0084090,96,0.783671,Junior ML Engineer | 3.9 yrs exp | 2 AI role(s) in career | assess=12.2 | resp_rate=0.74 | mult=1.149
+CAND_0064326,97,0.782920,Search Engineer | 7.6 yrs exp | 4 AI role(s) in career | assess=0.0 | resp_rate=0.94 | mult=1.150
+CAND_0091745,98,0.782202,Junior ML Engineer | 5.9 yrs exp | 2 AI role(s) in career | assess=12.8 | resp_rate=0.53 | mult=1.112
+CAND_0061257,99,0.781413,Staff Machine Learning Engineer | 8.0 yrs exp | 2 AI role(s) in career | assess=10.4 | resp_rate=0.87 | mult=1.150
+CAND_0082489,100,0.781357,ML Engineer | 5.3 yrs exp | 2 AI role(s) in career | assess=9.1 | resp_rate=0.71 | mult=1.150
