@@ -3,12 +3,14 @@ import json
 import sys
 from pathlib import Path
 
-# Ensure project root on path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Ensure project root on path (works regardless of CWD when invoked via pytest)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 from src.features import build_final_score, build_reasoning
 
-SAMPLE_PATH = Path("data/sample/sample_candidates.json")
+SAMPLE_PATH = _PROJECT_ROOT / "data" / "sample" / "sample_candidates.json"
 
 with open(SAMPLE_PATH, "r", encoding="utf-8") as f:
     candidates = json.load(f)

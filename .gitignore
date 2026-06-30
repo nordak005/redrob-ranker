@@ -1,18 +1,156 @@
-# Outputs and Models
-models/
-*.npy
-*.parquet
+# ==============================================================================
+# Redrob AI Engineer Ranker — .gitignore
+# ==============================================================================
 
-# Python environments and caches
+# ==============================================================================
+# Python
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
 .venv/
 venv/
 ENV/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+env/
+env.bak/
+venv.bak/
+
+# ==============================================================================
+# Testing & Linting
+# ==============================================================================
 .pytest_cache/
-.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
 .ruff_cache/
 .mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ==============================================================================
+# Jupyter Notebooks
+# ==============================================================================
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# ==============================================================================
+# Data — large binary files
+# ==============================================================================
+# Full dataset (54 MB compressed) — place at data/raw/candidates.jsonl.gz
 data/raw/candidates.jsonl.gz
+
+# Precomputed embeddings (~160 MB total)
+data/*.npy
+data/*.npz
+data/*.pkl
+
+# ==============================================================================
+# Outputs — large generated files
+# ==============================================================================
+# Full-population rankings (17–20 MB each, regeneratable)
+outputs/full_rankings.csv
+outputs/hybrid_rankings.csv
+
+# Debug CSV dumps
+outputs/debug_*.csv
+
+# Numpy/binary outputs
+outputs/*.npy
+outputs/*.npz
+
+# ==============================================================================
+# Models — HuggingFace model cache
+# ==============================================================================
+models/
+
+# ==============================================================================
+# Archive — preserved locally, not committed
+# ==============================================================================
+archive/
+
+# ==============================================================================
+# IDE / Editor
+# ==============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==============================================================================
+# Environment & secrets
+# ==============================================================================
+.env
+.env.*
+*.env
+*.secret
+
+# ==============================================================================
+# Logs & temp files
+# ==============================================================================
+*.log
+*.tmp
+*.bak
+*.cache
+*.orig
+
+# ==============================================================================
+# OS
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V1
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==============================================================================
+# DO NOT IGNORE (explicitly kept in git)
+# ==============================================================================
+# !src/
+# !scripts/
+# !tests/
+# !notebooks/
+# !research/
+# !docs/
+# !configs/
+# !assets/
+# !outputs/final_submission.csv
+# !outputs/submission.csv
+# !outputs/performance_report.md
+# !outputs/performance_report.json
+# !outputs/debug_scores.csv
+# !outputs/ai_candidate_pool.csv
+# !outputs/top100.csv
+# !data/raw/candidate_schema.json
+# !data/sample/
+# !data/embedding_metadata.json
+# !README.md
+# !Dockerfile
+# !requirements.txt

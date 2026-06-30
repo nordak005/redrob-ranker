@@ -222,7 +222,7 @@ streamlit run app.py
 ### Validation
 
 ```bash
-python validate_submission.py outputs/final_submission.csv
+python scripts/validate_submission.py outputs/final_submission.csv
 pytest
 ```
 
@@ -254,37 +254,43 @@ pytest
 
 ```
 project_root/
-├── data/
-│   ├── raw/
-│   │   ├── candidates.jsonl.gz       # 100k candidate profiles
-│   │   └── candidate_schema.json     # JSON schema
-│   └── sample/
-│       ├── sample_candidates.json    # ~10 candidate demo
-│       └── sample_submission.csv     # Format reference
-├── src/
-│   ├── __init__.py
-│   ├── features.py                   # All 5 feature builders + internal reasoning
-│   ├── ranker.py                     # AIEngineerRanker + rank_candidates()
-│   ├── reasoning.py                  # Natural-language reasoning for submission
-│   ├── submission_validator.py       # Format validation
-│   └── utils.py                      # Timer, load_candidates, save_csv
+├── src/                              # Core library (feature eng, ranking, embeddings)
 ├── scripts/
 │   ├── run_ranker.py                 # Full pipeline CLI (100k candidates)
 │   ├── generate_submission.py        # Final submission generator (< 10s)
-│   └── ...                          # Exploration and validation scripts
-├── evaluation/
-│   └── evaluation_report.md         # Full evaluation report
+│   ├── generate_embeddings.py        # Offline embedding pipeline (run once)
+│   ├── benchmark_embeddings.py       # Embedding benchmark
+│   ├── validate_submission.py        # Competition submission validator
+│   └── ...                          # Utilities and export scripts
+├── tests/
+│   ├── test_validation.py            # Submission format validation tests
+│   ├── test_smoke.py                 # Feature scoring smoke test (sample data)
+│   └── test_hybrid.py               # Hybrid ranker timing test
+├── notebooks/
+│   ├── 01_data_exploration.ipynb
+│   ├── 02_real_data_exploration.ipynb
+│   ├── 03_retrieval_signal_audit.ipynb
+│   ├── 04_evaluation.ipynb
+│   ├── 05_final_audit.ipynb
+│   └── 06_hybrid_ranking.ipynb
+├── research/                         # EDA scripts (schema explorer, memory report)
 ├── docs/
-│   └── interview_notes.md           # Technical interview Q&A
+│   ├── interview_notes.md            # Technical interview Q&A
+│   ├── evaluation_report.md          # Full evaluation report
+│   └── schema_report.md             # Dataset schema analysis
+├── configs/
+│   └── submission_metadata.yaml      # Submission metadata (fill TODO fields)
 ├── outputs/
-│   ├── final_submission.csv         # ← FINAL SUBMISSION (100 rows, hybrid)
-│   ├── submission.csv               # Feature-only ranking (100 rows)
-│   ├── hybrid_rankings.csv          # Full 100k hybrid scores
-│   └── ...
+│   ├── final_submission.csv          # ← FINAL SUBMISSION (100 rows, hybrid)
+│   ├── submission.csv                # Feature-only ranking (100 rows)
+│   └── ...                          # Performance reports, debug scores
+├── data/
+│   ├── raw/candidates.jsonl.gz       # 100k candidate profiles (gitignored)
+│   └── sample/                       # Sample data for testing
+├── archive/                          # Preserved non-production files
 ├── app.py                            # Streamlit sandbox
-├── submission_metadata.yaml          # Submission metadata
-├── validate_submission.py            # Competition validator
-├── requirements.txt
+├── requirements.txt                  # Runtime dependencies
+├── requirements-dev.txt              # Development dependencies
 ├── Dockerfile
 └── README.md
 ```

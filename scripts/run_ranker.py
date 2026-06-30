@@ -181,7 +181,7 @@ def _validate_output(csv_path: Path) -> bool:
 
     Returns True if valid, False if errors found.
     """
-    validator_path = _PROJECT_ROOT / "validate_submission.py"
+    validator_path = _PROJECT_ROOT / "scripts" / "validate_submission.py"
     if not validator_path.exists():
         logger.warning("validate_submission.py not found at %s; skipping.", validator_path)
         return True

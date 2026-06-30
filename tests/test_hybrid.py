@@ -1,5 +1,10 @@
 import sys, time, json
-sys.path.insert(0, '.')
+from pathlib import Path
+
+# Ensure project root on path (works regardless of CWD when invoked via pytest)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 t0 = time.perf_counter()
 from src.hybrid_ranker import get_model, get_jd_embedding, hybrid_rank
@@ -13,7 +18,7 @@ t2 = time.perf_counter()
 print("JD embedding:", round(t2-t1, 2), "s")
 print("Total startup:", round(t2-t0, 2), "s")
 
-with open('data/sample/sample_candidates.json') as f:
+with open(_PROJECT_ROOT / 'data' / 'sample' / 'sample_candidates.json') as f:
     sample = json.load(f)
 
 t3 = time.perf_counter()

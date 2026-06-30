@@ -1,0 +1,36 @@
+{
+  "load_candidates": 6.712251,
+  "embedding_load": 0.08719,
+  "jd_encoding": 14.322166,
+  "id_alignment": 0.185588,
+  "cosine_similarity": 0.003699,
+  "title_score": 0.676235,
+  "career_score": 2.381237,
+  "assessment_score": 0.148574,
+  "skill_trust_score": 3.297893,
+  "retrieval_score": 4.494929,
+  "behavioral_multiplier": 0.231343,
+  "final_score_assembly": 0.388134,
+  "reasoning": 2.794133,
+  "hybrid_combine": 0.801209,
+  "sorting": 0.079646,
+  "top_n_extraction": 2.9e-05,
+  "csv_generation": 0.000743,
+  "_total_seconds": 36.605,
+  "_n_candidates": 100000,
+  "_slow_threshold_sec": 5.0,
+  "_slow_stages": [
+    "load_candidates",
+    "jd_encoding"
+  ],
+  "_per_candidate_us": {
+    "title_score": 6.76,
+    "career_score": 23.81,
+    "assessment_score": 1.49,
+    "skill_trust_score": 32.98,
+    "retrieval_score": 44.95,
+    "behavioral_multiplier": 2.31,
+    "final_score_assembly": 3.88,
+    "reasoning": 27.94
+  }
+}

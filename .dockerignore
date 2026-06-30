@@ -2,6 +2,9 @@
 .git
 .gitignore
 
+# Dev-only dependencies (container only needs requirements.txt)
+requirements-dev.txt
+
 # Python caches
 __pycache__/
 *.pyc
