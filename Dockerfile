@@ -1,51 +1,40 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
-# ---------------------------------------------------------------------------
-# System dependencies
-# ---------------------------------------------------------------------------
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    SENTENCE_TRANSFORMERS_HOME=/app/models \
+    HF_HUB_DISABLE_PROGRESS_BARS=1 \
+    APP=streamlit
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------------------------------------------------------------------------
-# Python dependencies (installed before copying code for layer caching)
-# ---------------------------------------------------------------------------
 WORKDIR /app
+
+# Copy requirements first for Docker layer caching
 COPY requirements.txt .
+
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---------------------------------------------------------------------------
-# Application code
-# ---------------------------------------------------------------------------
+# Pre-download and cache the SentenceTransformer model during build
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Copy the rest of the application files
 COPY . .
 
-# ---------------------------------------------------------------------------
-# Runtime configuration
-# ---------------------------------------------------------------------------
 # Expose Streamlit default port
 EXPOSE 8501
 
-# Healthcheck for the Streamlit sandbox
+# Healthcheck for the Streamlit service
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:8501/_stcore/health || exit 1
 
-# ---------------------------------------------------------------------------
-# Entry point
-#
-# Default: Streamlit sandbox (for HuggingFace Spaces / Streamlit Cloud)
-#
-# To run the submission generator instead:
-#   docker run -e APP=ranker <image>
-#
-# To generate a submission with local data mounted:
-#   docker run -e APP=ranker \
-#     -v $(pwd)/data:/app/data \
-#     -v $(pwd)/outputs:/app/outputs \
-#     <image>
-# ---------------------------------------------------------------------------
-ENV APP=streamlit
-
+# Launch script
 CMD ["sh", "-c", "\
     if [ \"$APP\" = \"ranker\" ]; then \
         python scripts/generate_submission.py; \

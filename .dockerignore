@@ -2,45 +2,42 @@
 .git
 .gitignore
 
-# Dev-only dependencies (container only needs requirements.txt)
-requirements-dev.txt
+# Preserved Assets: Precomputed candidate embeddings and metadata in data/ are NOT ignored
+# (data/candidate_embeddings.npy, data/candidate_ids.npy, data/embedding_metadata.json are copied into the image)
 
-# Python caches
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-*.egg-info/
-
-# Virtual environment
-.venv/
-env/
-venv/
-
-# Large outputs that should be volume-mounted instead
-# (keeps the image lean — mount these at runtime if needed)
-outputs/full_rankings.csv
-outputs/hybrid_rankings.csv
-outputs/semantic_results.csv
-outputs/ai_candidate_profiles.csv
-outputs/retrieval_candidates.csv
-
-# Notebooks (not needed for runtime)
-notebooks/
-
-# IDE / editor
+# IDE / Editor config
 .vscode/
 .idea/
 *.swp
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Models cache (will be downloaded on first run if needed)
-models/*.bin
-models/*.pt
+# Python caches and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+models/
 
-# Test artifacts
+# Research and notebooks
+archive/
+research/
+notebooks/
+.ipynb_checkpoints/
+
+# Tests & profiling
+tests/
 .coverage
 htmlcov/
+*benchmark*
+scripts/profile_pipeline.py
+scripts/benchmark_embeddings.py
+
+# Host-generated run outputs
+outputs/*
+!outputs/README.md

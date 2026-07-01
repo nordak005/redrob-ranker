@@ -134,6 +134,20 @@ def main() -> int:
     logger.info("Redrob — Final Submission Generator")
     logger.info("=" * 60)
 
+    # ── Startup Validation ───────────────────────────────────────────────────
+    required_files = [
+        _PROJECT_ROOT / "data" / "candidate_embeddings.npy",
+        _PROJECT_ROOT / "data" / "candidate_ids.npy",
+        _PROJECT_ROOT / "data" / "embedding_metadata.json",
+    ]
+    missing = [p.name for p in required_files if not p.exists()]
+    if missing:
+        logger.error("ERROR: The embedding cache is missing.")
+        logger.error("Missing files: %s", ", ".join([f"data/{f}" for f in missing]))
+        logger.error("Run: python scripts/generate_embeddings.py")
+        logger.error("=" * 60)
+        return 1
+
     t_start = time.perf_counter()
 
     # ── Step 1: Load full candidate profiles ───────────────────────────────

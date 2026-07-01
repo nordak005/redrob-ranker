@@ -44,8 +44,20 @@ _PROJECT_ROOT = Path(__file__).resolve().parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from src.hybrid_ranker import hybrid_rank, get_model, get_jd_embedding, JD_TEXT
-from src.embedding_store import load_embeddings, get_candidate_ids, get_metadata, EmbeddingStoreError
+def safe_print(text: str) -> None:
+    """Prints text to sys.stdout safely, avoiding UnicodeEncodeError or OSError on Windows."""
+    try:
+        sys.stdout.write(text + "\n")
+        sys.stdout.flush()
+    except UnicodeEncodeError:
+        fallback = text.replace("✔", "[OK]")
+        try:
+            sys.stdout.write(fallback + "\n")
+            sys.stdout.flush()
+        except Exception:
+            pass
+    except Exception:
+        pass
 
 # ── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -55,67 +67,132 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Startup Validation ───────────────────────────────────────────────────────
+_required_files = [
+    _PROJECT_ROOT / "data" / "candidate_embeddings.npy",
+    _PROJECT_ROOT / "data" / "candidate_ids.npy",
+    _PROJECT_ROOT / "data" / "embedding_metadata.json",
+]
+_missing = [p.name for p in _required_files if not p.exists()]
+if _missing:
+    sys.stderr.write(
+        "\n==================================================\n"
+        "ERROR: The embedding cache is missing.\n"
+        "Run:\n"
+        "    python scripts/generate_embeddings.py\n"
+        "==================================================\n\n"
+    )
+    st.error("### 🚨 Startup Error: Embedding Cache Missing")
+    st.markdown(
+        "The following required embedding cache files are missing:\n"
+        + "".join([f"- `data/{f}`\n" for f in _missing]) +
+        "\n"
+        "These precomputed inference artifacts are required for production. "
+        "Please generate them using the script:\n"
+        "```bash\n"
+        "python scripts/generate_embeddings.py\n"
+        "```"
+    )
+    st.stop()
+
+from src.hybrid_ranker import hybrid_rank, get_model, get_jd_embedding, JD_TEXT
+from src.embedding_store import load_embeddings, get_candidate_ids, get_metadata, EmbeddingStoreError
+
 # ── CSS ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6, .main-header h1 {
+        font-family: 'Outfit', sans-serif;
     }
 
     .main-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-        padding: 2rem 2.5rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
+        background: radial-gradient(circle at 0% 0%, #1e1b4b 0%, #0f172a 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 2.2rem 2.5rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
         color: white;
     }
 
+    .main-header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 60%);
+        pointer-events: none;
+    }
+
     .main-header h1 {
-        font-size: 2rem;
-        font-weight: 700;
-        margin: 0 0 0.25rem 0;
-        color: #e2e8f0;
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin: 0 0 0.4rem 0;
+        color: #f8fafc;
+        letter-spacing: -0.02em;
     }
 
     .main-header p {
         color: #94a3b8;
         margin: 0;
         font-size: 0.95rem;
+        font-weight: 500;
     }
 
     .metric-card {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-        border: 1px solid #334155;
-        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
         padding: 1.2rem 1.5rem;
         text-align: center;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .metric-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(99, 102, 241, 0.45);
+        box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.18);
     }
 
     .metric-card .value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #38bdf8;
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 
     .metric-card .label {
-        font-size: 0.8rem;
-        color: #64748b;
-        margin-top: 0.2rem;
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin-top: 0.25rem;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
+        font-weight: 600;
     }
 
     .formula-box {
-        background: #0f172a;
-        border: 1px solid #334155;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 10px;
-        padding: 1rem 1.5rem;
+        padding: 1.1rem 1.3rem;
         font-family: 'Courier New', monospace;
-        font-size: 0.9rem;
-        color: #38bdf8;
+        font-size: 0.85rem;
+        color: #a78bfa;
         margin: 0.5rem 0;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
     }
 
     .stDownloadButton button {
@@ -124,52 +201,127 @@ st.markdown("""
         border: none !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
+        padding: 0.6rem 1.6rem !important;
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3) !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .stDownloadButton button:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px rgba(14, 165, 233, 0.45) !important;
+    }
+
+    /* Style primary ranker button */
+    div.stButton button[kind="primary"] {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        padding: 0.75rem 2rem !important;
+        font-size: 1rem !important;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    div.stButton button[kind="primary"]:hover {
+        transform: translateY(-2px) scale(1.02) !important;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6) !important;
+        border: none !important;
+    }
+
+    div.stButton button[kind="primary"]:active {
+        transform: translateY(1px) scale(0.98) !important;
+    }
+
+    /* Style secondary buttons */
+    div.stButton button[kind="secondary"] {
+        background: rgba(30, 41, 59, 0.6) !important;
+        color: #e2e8f0 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
         padding: 0.5rem 1.5rem !important;
+        transition: all 0.3s ease !important;
+    }
+
+    div.stButton button[kind="secondary"]:hover {
+        background: rgba(30, 41, 59, 0.9) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* Custom File Uploader */
+    div[data-testid="stFileUploader"] {
+        background: rgba(15, 23, 42, 0.3);
+        border: 2px dashed rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        padding: 1.5rem !important;
+        transition: all 0.3s ease !important;
+    }
+
+    div[data-testid="stFileUploader"]:hover {
+        border-color: rgba(99, 102, 241, 0.5) !important;
+        background: rgba(15, 23, 42, 0.5);
     }
 
     .info-box {
-        background: #0f172a;
-        border-left: 4px solid #38bdf8;
-        padding: 0.8rem 1rem;
-        border-radius: 0 8px 8px 0;
-        font-size: 0.9rem;
-        color: #94a3b8;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-left: 4px solid #6366f1;
+        padding: 1rem 1.2rem;
+        border-radius: 8px;
+        font-size: 0.92rem;
+        color: #cbd5e1;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
 
     div[data-testid="stDataFrame"] {
-        border-radius: 10px;
+        border-radius: 12px;
         overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .status-panel {
-        background: #0f172a;
-        border: 1px solid #1e3a5f;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(30, 58, 95, 0.5);
         border-radius: 10px;
         padding: 0.9rem 1.1rem;
         margin: 0.4rem 0;
         font-size: 0.85rem;
-        color: #94a3b8;
+        color: #cbd5e1;
     }
 
     .timing-panel {
-        background: #0d1b2a;
-        border: 1px solid #22334d;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        font-size: 0.82rem;
-        color: #7dd3fc;
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 0.85rem 1.2rem;
+        font-size: 0.85rem;
+        color: #e2e8f0;
         margin-top: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .timing-row {
         display: flex;
         justify-content: space-between;
-        padding: 2px 0;
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .timing-row:last-child {
+        border-bottom: none;
     }
 
     .timing-label { color: #94a3b8; }
     .timing-value { color: #38bdf8; font-weight: 600; }
 </style>
+
 """, unsafe_allow_html=True)
 
 
@@ -359,28 +511,125 @@ if not uploaded_file:
 # ── Load candidates ──────────────────────────────────────────────────────────
 candidates: list[dict] = []
 
+# Initialize session state keys for caching candidate uploads
+if "parsed_file_name" not in st.session_state:
+    st.session_state["parsed_file_name"] = None
+if "parsed_file_size" not in st.session_state:
+    st.session_state["parsed_file_size"] = None
+if "parsed_file_source" not in st.session_state:
+    st.session_state["parsed_file_source"] = None
+if "parsed_candidates" not in st.session_state:
+    st.session_state["parsed_candidates"] = []
+if "parse_time" not in st.session_state:
+    st.session_state["parse_time"] = 0.0
+if "is_cached_parse" not in st.session_state:
+    st.session_state["is_cached_parse"] = False
+
 if uploaded_file is not None:
-    with st.spinner("Parsing uploaded file..."):
-        raw_bytes = uploaded_file.read()
-        try:
-            if uploaded_file.name.endswith(".gz"):
-                content = gzip.decompress(raw_bytes).decode("utf-8")
-            else:
-                content = raw_bytes.decode("utf-8")
-            for line in content.splitlines():
-                line = line.strip()
-                if line:
-                    candidates.append(json.loads(line))
-            st.success(f"✅ Loaded **{len(candidates):,}** candidates from `{uploaded_file.name}`")
-        except Exception as e:
-            st.error(f"Failed to parse file: {e}")
+    file_name = uploaded_file.name
+    file_size = uploaded_file.size
+    
+    # Check if we need to parse / re-parse
+    if (
+        st.session_state["parsed_file_name"] != file_name
+        or st.session_state["parsed_file_size"] != file_size
+        or st.session_state["parsed_file_source"] != "uploaded"
+    ):
+        # Print upload start to console
+        safe_print("Uploading file...")
+        t_start = time.perf_counter()
+        with st.spinner("Parsing uploaded file..."):
+            try:
+                raw_bytes = uploaded_file.read()
+                if file_name.endswith(".gz"):
+                    content = gzip.decompress(raw_bytes).decode("utf-8")
+                else:
+                    content = raw_bytes.decode("utf-8")
+                
+                parsed_list = []
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line:
+                        parsed_list.append(json.loads(line))
+                
+                t_elapsed = time.perf_counter() - t_start
+                st.session_state["parsed_file_name"] = file_name
+                st.session_state["parsed_file_size"] = file_size
+                st.session_state["parsed_file_source"] = "uploaded"
+                st.session_state["parsed_candidates"] = parsed_list
+                st.session_state["parse_time"] = t_elapsed
+                st.session_state["is_cached_parse"] = False
+                
+                # Terminal output
+                safe_print(f"✔ Parse completed in {t_elapsed:.2f} sec")
+            except Exception as e:
+                st.error(f"Failed to parse file: {e}")
+                st.session_state["parsed_file_name"] = None
+                st.session_state["parsed_file_size"] = None
+                st.session_state["parsed_file_source"] = None
+                st.session_state["parsed_candidates"] = []
+                st.session_state["parse_time"] = 0.0
+                st.session_state["is_cached_parse"] = False
+    else:
+        st.session_state["is_cached_parse"] = True
+    
+    candidates = st.session_state["parsed_candidates"]
+    if candidates:
+        if st.session_state["is_cached_parse"]:
+            st.success(f"✅ Loaded **{len(candidates):,}** candidates from `{file_name}` (cached)")
+        else:
+            st.success(f"✔ Parse completed in {st.session_state['parse_time']:.2f} sec")
 
 elif use_sample and sample_path.exists():
-    with st.spinner("Loading sample candidates..."):
-        with open(str(sample_path), "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        candidates = raw if isinstance(raw, list) else [raw]
-        st.success(f"✅ Loaded **{len(candidates):,}** sample candidates")
+    if (
+        st.session_state["parsed_file_source"] != "sample"
+        or not st.session_state["parsed_candidates"]
+    ):
+        t_start = time.perf_counter()
+        with st.spinner("Loading sample candidates..."):
+            try:
+                with open(str(sample_path), "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                parsed_list = raw if isinstance(raw, list) else [raw]
+                t_elapsed = time.perf_counter() - t_start
+                
+                st.session_state["parsed_file_name"] = sample_path.name
+                st.session_state["parsed_file_size"] = sample_path.stat().st_size
+                st.session_state["parsed_file_source"] = "sample"
+                st.session_state["parsed_candidates"] = parsed_list
+                st.session_state["parse_time"] = t_elapsed
+                st.session_state["is_cached_parse"] = False
+                
+                safe_print(f"✔ Sample load completed in {t_elapsed:.2f} sec")
+            except Exception as e:
+                st.error(f"Failed to load sample data: {e}")
+                st.session_state["parsed_file_name"] = None
+                st.session_state["parsed_file_size"] = None
+                st.session_state["parsed_file_source"] = None
+                st.session_state["parsed_candidates"] = []
+                st.session_state["parse_time"] = 0.0
+                st.session_state["is_cached_parse"] = False
+    else:
+        st.session_state["is_cached_parse"] = True
+
+    candidates = st.session_state["parsed_candidates"]
+    if candidates:
+        if st.session_state["is_cached_parse"]:
+            st.success(f"✅ Loaded **{len(candidates):,}** sample candidates (cached)")
+        else:
+            st.success(f"✔ Parse completed in {st.session_state['parse_time']:.2f} sec")
+
+else:
+    # If the user cleared the file uploader, and we previously had an uploaded file, clear the cache.
+    if st.session_state["parsed_file_source"] == "uploaded":
+        st.session_state["parsed_file_name"] = None
+        st.session_state["parsed_file_size"] = None
+        st.session_state["parsed_file_source"] = None
+        st.session_state["parsed_candidates"] = []
+        st.session_state["parse_time"] = 0.0
+        st.session_state["is_cached_parse"] = False
+    
+    candidates = st.session_state["parsed_candidates"]
 
 
 # ── Ranker ───────────────────────────────────────────────────────────────────
@@ -407,6 +656,14 @@ if candidates:
     run_btn = st.button("▶ Run Hybrid Ranker", type="primary", use_container_width=False)
 
     if run_btn:
+        # Terminal logging for verifying cached parsed candidate reuse (kept for logs, hidden from UI)
+        safe_print("\nHybrid Rank button...")
+        if st.session_state.get("is_cached_parse") or st.session_state.get("parsed_file_source") == "sample":
+            safe_print("✔ Using cached parsed candidates")
+            safe_print("✔ No reparsing detected\n")
+        else:
+            safe_print("✔ First run parsing completed, rank processing...\n")
+
         # ── Step A: Align cached embeddings to the uploaded batch ────────────
         precomputed_aligned = None
         if _has_cache:
