@@ -98,6 +98,40 @@ if _missing:
 from src.hybrid_ranker import hybrid_rank, get_model, get_jd_embedding, JD_TEXT
 from src.embedding_store import load_embeddings, get_candidate_ids, get_metadata, EmbeddingStoreError
 
+
+def validate_and_parse_candidates(
+    content: str, 
+    file_name: str, 
+    mode: str
+) -> tuple[list[dict], str | None]:
+    """
+    Parses candidates from raw text content (JSON array or JSONL)
+    and validates candidate count according to the execution mode.
+    """
+    try:
+        content_stripped = content.strip()
+        if content_stripped.startswith("[") and content_stripped.endswith("]"):
+            # Standard JSON array/list
+            parsed_list = json.loads(content_stripped)
+            if not isinstance(parsed_list, list):
+                parsed_list = [parsed_list]
+        else:
+            # JSON Lines
+            parsed_list = []
+            for line in content_stripped.splitlines():
+                line = line.strip()
+                if line:
+                    parsed_list.append(json.loads(line))
+    except Exception as e:
+        return [], f"Failed to parse file: {e}"
+
+    num_candidates = len(parsed_list)
+    if mode == "Sandbox Demo" and num_candidates > 100:
+        return [], f"Uploaded file contains {num_candidates} candidates, which exceeds the limit of 100 candidates for Sandbox Demo mode."
+
+    return parsed_list, None
+
+
 # ── CSS ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -475,11 +509,24 @@ hybrid_score =<br>
     st.caption("Redrob Hackathon 2026 | CPU-only | No GPUs")
 
 
+# ── Execution Mode Selector ───────────────────────────────────────────────────
+st.markdown("### ⚙️ Execution Mode")
+execution_mode = st.radio(
+    "Choose Mode",
+    options=["Production", "Sandbox Demo"],
+    index=0,
+    horizontal=True,
+    label_visibility="collapsed"
+)
+
+if execution_mode == "Sandbox Demo":
+    st.info("This mode is intended for Redrob Hackathon reproducibility (≤100 candidates).")
+
 # ── File Upload ──────────────────────────────────────────────────────────────
 st.markdown("### 📂 Upload Candidate File")
 st.markdown("""
 <div class="info-box">
-Upload a <strong>.jsonl</strong> or <strong>.jsonl.gz</strong> file.
+Upload a <strong>.jsonl</strong>, <strong>.json</strong>, or <strong>.gz</strong> file.
 Each line: a JSON candidate with keys <code>candidate_id</code>, <code>profile</code>,
 <code>career_history</code>, <code>skills</code>, <code>redrob_signals</code>.
 <br><br>
@@ -490,7 +537,7 @@ candidate embeddings are never recomputed.
 
 uploaded_file = st.file_uploader(
     "Drop your candidate file here",
-    type=["jsonl", "gz"],
+    type=["jsonl", "json", "gz"],
     label_visibility="collapsed",
 )
 
@@ -518,6 +565,8 @@ if "parsed_file_size" not in st.session_state:
     st.session_state["parsed_file_size"] = None
 if "parsed_file_source" not in st.session_state:
     st.session_state["parsed_file_source"] = None
+if "parsed_file_mode" not in st.session_state:
+    st.session_state["parsed_file_mode"] = None
 if "parsed_candidates" not in st.session_state:
     st.session_state["parsed_candidates"] = []
 if "parse_time" not in st.session_state:
@@ -534,6 +583,7 @@ if uploaded_file is not None:
         st.session_state["parsed_file_name"] != file_name
         or st.session_state["parsed_file_size"] != file_size
         or st.session_state["parsed_file_source"] != "uploaded"
+        or st.session_state.get("parsed_file_mode") != execution_mode
     ):
         # Print upload start to console
         safe_print("Uploading file...")
@@ -546,27 +596,35 @@ if uploaded_file is not None:
                 else:
                     content = raw_bytes.decode("utf-8")
                 
-                parsed_list = []
-                for line in content.splitlines():
-                    line = line.strip()
-                    if line:
-                        parsed_list.append(json.loads(line))
+                parsed_list, err = validate_and_parse_candidates(content, file_name, execution_mode)
                 
-                t_elapsed = time.perf_counter() - t_start
-                st.session_state["parsed_file_name"] = file_name
-                st.session_state["parsed_file_size"] = file_size
-                st.session_state["parsed_file_source"] = "uploaded"
-                st.session_state["parsed_candidates"] = parsed_list
-                st.session_state["parse_time"] = t_elapsed
-                st.session_state["is_cached_parse"] = False
-                
-                # Terminal output
-                safe_print(f"✔ Parse completed in {t_elapsed:.2f} sec")
+                if err:
+                    st.error(err)
+                    st.session_state["parsed_file_name"] = None
+                    st.session_state["parsed_file_size"] = None
+                    st.session_state["parsed_file_source"] = None
+                    st.session_state["parsed_file_mode"] = None
+                    st.session_state["parsed_candidates"] = []
+                    st.session_state["parse_time"] = 0.0
+                    st.session_state["is_cached_parse"] = False
+                else:
+                    t_elapsed = time.perf_counter() - t_start
+                    st.session_state["parsed_file_name"] = file_name
+                    st.session_state["parsed_file_size"] = file_size
+                    st.session_state["parsed_file_source"] = "uploaded"
+                    st.session_state["parsed_file_mode"] = execution_mode
+                    st.session_state["parsed_candidates"] = parsed_list
+                    st.session_state["parse_time"] = t_elapsed
+                    st.session_state["is_cached_parse"] = False
+                    
+                    # Terminal output
+                    safe_print(f"✔ Parse completed in {t_elapsed:.2f} sec")
             except Exception as e:
                 st.error(f"Failed to parse file: {e}")
                 st.session_state["parsed_file_name"] = None
                 st.session_state["parsed_file_size"] = None
                 st.session_state["parsed_file_source"] = None
+                st.session_state["parsed_file_mode"] = None
                 st.session_state["parsed_candidates"] = []
                 st.session_state["parse_time"] = 0.0
                 st.session_state["is_cached_parse"] = False
@@ -584,28 +642,41 @@ elif use_sample and sample_path.exists():
     if (
         st.session_state["parsed_file_source"] != "sample"
         or not st.session_state["parsed_candidates"]
+        or st.session_state.get("parsed_file_mode") != execution_mode
     ):
         t_start = time.perf_counter()
         with st.spinner("Loading sample candidates..."):
             try:
                 with open(str(sample_path), "r", encoding="utf-8") as f:
-                    raw = json.load(f)
-                parsed_list = raw if isinstance(raw, list) else [raw]
-                t_elapsed = time.perf_counter() - t_start
+                    content = f.read()
                 
-                st.session_state["parsed_file_name"] = sample_path.name
-                st.session_state["parsed_file_size"] = sample_path.stat().st_size
-                st.session_state["parsed_file_source"] = "sample"
-                st.session_state["parsed_candidates"] = parsed_list
-                st.session_state["parse_time"] = t_elapsed
-                st.session_state["is_cached_parse"] = False
-                
-                safe_print(f"✔ Sample load completed in {t_elapsed:.2f} sec")
+                parsed_list, err = validate_and_parse_candidates(content, sample_path.name, execution_mode)
+                if err:
+                    st.error(err)
+                    st.session_state["parsed_file_name"] = None
+                    st.session_state["parsed_file_size"] = None
+                    st.session_state["parsed_file_source"] = None
+                    st.session_state["parsed_file_mode"] = None
+                    st.session_state["parsed_candidates"] = []
+                    st.session_state["parse_time"] = 0.0
+                    st.session_state["is_cached_parse"] = False
+                else:
+                    t_elapsed = time.perf_counter() - t_start
+                    st.session_state["parsed_file_name"] = sample_path.name
+                    st.session_state["parsed_file_size"] = sample_path.stat().st_size
+                    st.session_state["parsed_file_source"] = "sample"
+                    st.session_state["parsed_file_mode"] = execution_mode
+                    st.session_state["parsed_candidates"] = parsed_list
+                    st.session_state["parse_time"] = t_elapsed
+                    st.session_state["is_cached_parse"] = False
+                    
+                    safe_print(f"✔ Sample load completed in {t_elapsed:.2f} sec")
             except Exception as e:
                 st.error(f"Failed to load sample data: {e}")
                 st.session_state["parsed_file_name"] = None
                 st.session_state["parsed_file_size"] = None
                 st.session_state["parsed_file_source"] = None
+                st.session_state["parsed_file_mode"] = None
                 st.session_state["parsed_candidates"] = []
                 st.session_state["parse_time"] = 0.0
                 st.session_state["is_cached_parse"] = False
@@ -625,6 +696,7 @@ else:
         st.session_state["parsed_file_name"] = None
         st.session_state["parsed_file_size"] = None
         st.session_state["parsed_file_source"] = None
+        st.session_state["parsed_file_mode"] = None
         st.session_state["parsed_candidates"] = []
         st.session_state["parse_time"] = 0.0
         st.session_state["is_cached_parse"] = False

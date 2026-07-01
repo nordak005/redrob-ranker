@@ -1,0 +1,89 @@
+# Redrob AI Engineer Ranker — Submission Metadata
+# Stage 3/4 submission verification configuration
+
+# ============================================================================
+# Team identity (Placeholders - Fill in before final portal upload)
+# ============================================================================
+team_name: "<YOUR_TEAM_NAME>"      # e.g., "team_42" (Used on leaderboards)
+
+primary_contact:
+  name: "<YOUR_PRIMARY_CONTACT_NAME>"
+  email: "<YOUR_PRIMARY_CONTACT_EMAIL>"
+  phone: "<YOUR_PRIMARY_CONTACT_PHONE>"
+
+team_members:
+  - name: "<YOUR_MEMBER_NAME_1>"
+    email: "<YOUR_MEMBER_EMAIL_1>"
+    role: "ML Engineer"
+  # Add more members below if working in a team:
+  # - name: "<YOUR_MEMBER_NAME_2>"
+  #   email: "<YOUR_MEMBER_EMAIL_2>"
+  #   role: "Software Engineer"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "<YOUR_GITHUB_REPOSITORY_URL>"
+# A working hosted Streamlit Sandbox link for reproducibility evaluation
+sandbox_link: "<YOUR_HOSTED_SANDBOX_LINK>"
+
+# Single-command final submission generator
+reproduce_command: "python scripts/generate_submission.py"
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "Local CPU"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.11"
+  os: "Windows / Linux (Docker)"
+  uses_gpu_for_inference: false       # Must be false — compute constraints
+  has_network_during_ranking: false   # Must be false — offline inference only
+  pre_computation_required: true      # Embeddings pre-computed offline
+  pre_computation_time_minutes: 2     # ~90 seconds for MiniLM on 100k candidates
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Gemini"                          # Code architecture, testing, and report review
+  - "GitHub Copilot"                  # Autocomplete
+
+ai_usage_summary: |
+  Used Gemini for code architecture reviews, designing the modular Sandbox Demo
+  execution mode, drafting the evaluation report, and validating the submission
+  formatting. Used GitHub Copilot for code autocomplete. No candidate data was 
+  fed to external LLMs. All scoring logic is deterministic Python.
+
+# ============================================================================
+# Methodology summary
+# ============================================================================
+methodology_summary: |
+  Hybrid ranker combining deterministic feature scoring (85%) with MiniLM
+  semantic similarity (15%). Five feature components: title score (0–35 pts)
+  evaluates current professional AI title against a 4-tier taxonomy; career
+  score (0–25 pts) weights career trajectory by tenure using sqrt(duration)
+  to prevent single-role dominance; retrieval score (0–15 pts) measures
+  search/ranking domain depth via skills, titles, and description keywords;
+  assessment score (0–15 pts) uses weighted Redrob platform AI assessment
+  results; skill trust score (0–10 pts) applies proficiency × endorsements ×
+  duration to prevent keyword stuffing. A behavioral multiplier (×0.50–1.15)
+  modulates the semantic score using recruiter response rate, notice period,
+  GitHub activity, and profile completeness. The feature score is combined
+  with all-MiniLM-L6-v2 cosine similarity at an 85/15 ratio. Total runtime:
+  under 6 seconds to generate the top-100 submission CSV on a standard CPU.
+  No GPUs. No APIs.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true          # I have read submission_spec.md in full
+  code_is_original_work: true         # My code is my team's original work
+  no_collusion: true                  # Not coordinated with other teams
+  honeypot_check_done: true           # Title-tier system explicitly blocks
+                                      # non-technical titles (PM, HR, etc.)
+                                      # regardless of skill claims
+  reproduction_tested: true           # Tested end-to-end with generate_submission.py

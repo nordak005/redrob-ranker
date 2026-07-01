@@ -1,296 +1,266 @@
-# Redrob AI Engineer Ranker — Final Submission
+# Redrob AI Candidate Ranking System
 
-> **Stage 3 Submission** · Hybrid CPU Ranking · 100k candidates · <20 seconds · No GPUs · No External APIs
-
----
-
-## 1. Problem
-
-Redrob needs to discover the top Senior AI Engineer candidates from a pool of **100,000 anonymised candidate profiles**. The challenge: identify individuals who have *professionally practiced* AI at the senior level — not just those who list AI buzzwords on their profiles.
-
-**Job Description core requirements:**
-- Retrieval, ranking, or recommendation systems experience
-- Demonstrated AI career trajectory (not just skills claimed)
-- Verifiable AI competency (platform assessment scores)
-- Active engagement with the platform (behavioral signals)
+> **Redrob Hackathon 2026 Submission**  
+> *A Production-Ready, CPU-Optimized Hybrid Ranking Pipeline for Senior AI Engineers.*  
+> **Offline Performance**: Semantic Search & Feature Ranking on 100,000 Candidates in **< 30 seconds** on standard CPU.  
+> **Zero Network Overhead** · **No GPU Required** · **Fully Isolated Docker Containerization**.
 
 ---
 
-## 2. Dataset
+## 1. Problem Statement
 
-| Property | Value |
-|---|---|
-| Total candidates | 100,000 |
-| Format | JSONL (gzip-compressed), ~54 MB |
-| Fields per candidate | profile, career_history, skills, redrob_signals |
-| Key signals | current_title, years_of_experience, career_history titles, skill assessments, recruiter_response_rate, notice_period_days |
-| Honeypot detection | Title-tier system penalizes non-AI titles regardless of skill claims |
+Modern talent acquisition platforms contain vast databases of candidate profiles. Discovering high-quality candidates for specialized roles like **Senior AI/ML Engineers** is a challenging ranking task. Recruiters are frequently overwhelmed by candidate pools containing thousands of profiles, many of which use keyword-stuffing tactics without possessing actual, verified domain depth. 
 
----
+Conversely, relying solely on semantic text matches (sentence embeddings) often misses structural signals such as years of experience, platform assessment scores, historical career trajectory, and behavioral signals (e.g., recruiter response rates or notice periods).
 
-## 3. Architecture
-
-```
-Candidate Profiles (100,000)
-        ↓
-Feature Engineering
-  ├── Title Score         (0–35 pts)  current professional title
-  ├── Career Score        (0–25 pts)  career trajectory × tenure
-  ├── Retrieval Score     (0–15 pts)  search/ranking domain depth
-  ├── Assessment Score    (0–15 pts)  Redrob AI platform assessments
-  └── Skill Trust Score   (0–10 pts)  proficiency × endorsements × duration
-        ↓
-Behavioral Multiplier (×0.50–1.15)
-  └── recruiter_response_rate, github_activity, notice_period, ...
-        ↓
-Feature Ranker  →  feature_score = semantic × multiplier / 115
-        ↓
-Precomputed Embeddings  (all-MiniLM-L6-v2, 384-dim, float32)
-  ├── Generated offline once for all candidates
-  └── Loaded into memory (singleton store)
-        ↓
-Semantic Search
-  └── Encode JD only → Fast matrix multiply → 0-100 embedding_score
-        ↓
-Hybrid Scoring
-  └── hybrid_score = 0.85 × feature_score + 0.15 × embedding_score
-        ↓
-Top 100 Candidates  →  outputs/final_submission.csv
-```
+### The Hybrid Solution
+This repository implements a production-grade **Hybrid Ranker** combining:
+1. **Deterministic Feature Engineering (85%)**: An explainable, rule-based feature pipeline evaluating profile completeness, professional seniority taxonomy, recency-weighted career trajectory, verified platform assessments, and credential trust metrics.
+2. **Semantic Similarity Search (15%)**: A sentence-embedding similarity scoring layer based on the `all-MiniLM-L6-v2` transformer model, mapping the candidate's holistic profile text to the Job Description (JD).
 
 ---
 
-## 4. Feature Engineering
+## 2. Architecture & Pipeline
 
-Five deterministic scoring components, all pure Python, no model inference:
+The system uses a two-phase architecture to achieve low-latency inference: an **offline precomputation phase** that caches candidate embeddings into a flat matrix, and an **online execution phase** that performs fast cosine similarities and feature engineering.
 
-### Title Score (0–35 points)
-Evaluates the candidate's **current job title** against a curated 4-tier taxonomy:
-- **Elite** (40 pts raw → 35 scaled): ML Engineer, Search Engineer, NLP Engineer, Applied Scientist
-- **Strong** (30 pts → ~26): Data Scientist, Computer Vision Engineer, LLM Engineer
-- **Moderate** (18 pts → ~16): Data Engineer, MLOps Engineer, Analytics Engineer
-- **Junior** (8 pts → ~7): Junior ML Engineer, Associate AI
-- **Non-technical** (0 pts): Project Manager, HR Manager — blocked regardless of skills listed
-
-### Career Score (0–25 points)
-Weighted career trajectory scoring:
-- Each role scored by AI-tier value
-- Weight = √(duration_months) — diminishing returns prevent one long role dominating
-- Recency bonus: +1.5 if most recent role is AI-tier
-- Breadth bonus: up to +2.0 for multiple distinct AI roles
-
-### Retrieval Score (0–15 points)
-Three independent sub-signals for retrieval/search/ranking domain depth:
-1. **Skill signal** (0–5): FAISS, Pinecone, Qdrant, Elasticsearch, BM25, embeddings, etc.
-2. **Title signal** (0–5): Search Engineer, Recommendation Systems Engineer, Ranking Engineer in current or past titles
-3. **Description signal** (0–5): retrieval terminology in career role descriptions (ranking, dense retrieval, LTR, reranking, etc.)
-
-### Assessment Score (0–15 points)
-Weighted average of Redrob platform AI assessment results across 14 categories:
-- Highest weight: FAISS (×1.5), Recommendation Systems (×1.5), Pinecone (×1.4)
-- Lowest weight: Prompt Engineering (×0.6) — easily gamed, shallow signal
-
-### Skill Trust Score (0–10 points)
-Quality-over-quantity trust metric:
-- Only AI-core skills counted (PyTorch, FAISS, transformers, scikit-learn, etc.)
-- Per-skill trust = 0.45 × proficiency + 0.25 × log(endorsements) + 0.30 × √(duration)
-- Top-5 skills averaged — prevents padding with weak skills
-
----
-
-## 5. Semantic Search
-
-**Model:** `all-MiniLM-L6-v2` (sentence-transformers, 384-dim, CPU, ~22 MB)
-
-Candidate text constructed from:
-- Current title + years of experience
-- Career history titles and descriptions
-- Top AI-relevant skills
-
-JD embedding computed once at startup. Cosine similarity produces a 0–100 embedding score for each candidate.
-
-**Why MiniLM over larger models:**
-- Runs on CPU in < 1ms per candidate
-- 384-dim is sufficient for title/career text similarity
-- No GPU required — satisfies the compute constraint
-- 22 MB model fits comfortably in RAM
-
----
-
-## 6. Precomputed Embeddings (Offline Pipeline)
-
-Encoding 100,000 candidates live takes 1000–2000 seconds on CPU. To achieve production-level latency (< 5s), the system uses an **offline embedding pipeline**:
-
-1. **`scripts/generate_embeddings.py`**: Runs once offline. Encodes all candidate text into a single `(100000, 384)` float32 NumPy array (`data/candidate_embeddings.npy`).
-2. **`src/embedding_store.py`**: Loads the precomputed array into memory once per process.
-3. **`src/semantic_search.py`**: At query time, only the JD is encoded. Semantic similarity is computed via a highly optimized matrix-vector dot product (`embeddings @ jd_emb`).
-
-**Result:** Semantic search latency drops from **~1500 seconds to < 3 seconds** for 100,000 candidates.
-
----
-
-## 7. Hybrid Ranking
-
-```
-hybrid_score = 0.85 × feature_score_scaled + 0.15 × embedding_score
+### Pipeline Flow Diagram
+```text
+Job Description (JD)                   Candidate Profile JSONL
+        │                                         │
+        ▼                                         ▼
+  MiniLM Encoder                         Feature Engineering
+        │                                 ├── Title Score      (0-35)
+        ▼                                 ├── Career Score     (0-25)
+  JD Embedding [384-dim]                  ├── Retrieval Score  (0-15)
+        │                                 ├── Assessment Score (0-15)
+        │                                 └── Skill Trust Score(0-10)
+        │                                         │
+        │                                         ▼
+        │                               Behavioral Multiplier [x0.50-1.15]
+        │                                         │
+        ▼                                         ▼
+  Cosine Similarity <──[Precomputed]───► Scaled Feature Score [0-100]
+  (via Dot Product)    Candidate Embs             │
+        │                                         │
+        ▼                                         ▼
+  Semantic Score [0-100]                  Final Feature Score [0-100]
+        │                                         │
+        └───────────────────┬─────────────────────┘
+                            │
+                            ▼
+                     Hybrid Scoring
+          (0.85 * Feature + 0.15 * Semantic)
+                            │
+                            ▼
+                    Sort & Tie-Breaker
+                            │
+                            ▼
+                   Natural Reasoning
+                            │
+                            ▼
+                  Top 100 Candidate CSV
 ```
 
-**Feature score** (85%) — deterministic, explainable, anti-gaming  
-**Embedding score** (15%) — semantic generalization, catches non-obvious fits
+---
 
-The 85/15 split was chosen because:
-- Feature scores encode hard professional facts (titles, tenures, assessments)
-- Embeddings add recall for candidates whose profiles use different terminology
-- A higher embedding weight would let keyword-only profiles game the system
+## 3. Core Features
 
-**Effect on Top-500:** Embeddings introduce only 13 new candidates into the top-500 vs. pure feature ranking — confirming the feature ranker's high precision, with embeddings providing modest recall improvement.
+### 🧠 Semantic Search (Sentence Embeddings)
+- **Model**: `all-MiniLM-L6-v2` (SentenceTransformer, 384-dimensional dense vectors).
+- **Holistic Profiles**: Constructs candidate search texts from current titles, headline summaries, years of experience, historical titles, and core skills.
+- **Optimized Similarity**: Utilizes standard L2-normalized vectors so that the cosine similarity is computed instantly via a matrix-vector dot product (`embeddings @ jd_emb`), running in under 2 seconds for 100K profiles.
+
+### 📊 Feature Engineering (Deterministic Python)
+- **Title Score (0–35 pts)**: Ranks candidate's current title against a strict AI taxonomy (Elite, Strong, Moderate, Junior). Irrelevant titles (e.g. Project Manager, HR) are automatically scored as `0.0`.
+- **Career Score (0–25 pts)**: Rates career trajectory by weighting historical roles. Sub-signal scaling uses a square-root tenure dampener (`sqrt(duration_months)`) to prevent a single long tenure from dominating the score.
+- **Retrieval Score (0–15 pts)**: Evaluates deep domain experience in search/ranking/recommendation systems using three criteria: skill keyword match, title keyword match, and role description keywords.
+- **Assessment Score (0–15 pts)**: Calculates weighted average of Redrob platform AI assessments, prioritizing core skills (e.g., Pinecone, FAISS, Recommendation Systems) and dampening shallow skills (e.g. Prompt Engineering).
+- **Skill Trust Score (0–10 pts)**: Penalizes keyword stuffing. Aggregates and averages the top 5 skills based on proficiency levels, user endorsements, and role-duration history.
+- **Behavioral Multiplier (×0.50–1.15)**: Adjusts scores based on recruiter response rates, GitHub activity, notice periods, and profile completeness.
+
+### ✍️ Natural Reasoning Generation
+For each of the top 100 candidates, the ranker synthesizes a natural language rationale highlighting:
+- The candidate's current title and overall years of experience.
+- Verified platform assessment highlights.
+- Domain fit (retrieval systems, semantic search, etc.).
+- Critical behavioral signals (such as short notice periods or high responsiveness).
+
+### 💾 Caching & Performance Optimizations
+- **Streamlit `@st.cache_resource`**: Caches the SentenceTransformer model and precomputed embedding matrix in RAM, ensuring zero reload overhead across frontend user interactions.
+- **Precomputed Embeddings**: Candidate embeddings are generated once offline, removing live inference bottlenecks and reducing online execution to CPU matrix operations.
 
 ---
 
-## 8. Evaluation
+## 4. Repository Structure
 
-| Metric | Value |
-|---|---|
-| Mean experience (top-100) | 6.45 years |
-| Search/Recommendation titles (top-100) | 32% |
-| Top-500 overlap: feature vs semantic | 46 candidates |
-| Top-500 churn from embeddings | 13 new candidates |
-| Candidate 0018499 hybrid rank | 8 |
-| Candidate 0000031 hybrid rank | 2 |
-| Feature rank for 0018499 | 5 (feature) → 8 (hybrid) |
-| Semantic rank for 0018499 | 70 (pure embedding) |
-
-### Case Study: CAND_0000031 (Hybrid Rank #2)
-Recommendation Systems Engineer with 6 years of experience and 4 AI roles in career history. Scores maximum on retrieval-domain metrics. Achieves hybrid rank #2 despite not topping either the feature-only or embedding-only rankings individually — the hybrid score correctly identifies depth across both dimensions.
-
-### Case Study: CAND_0018499 (Hybrid Rank #8)
-Feature Rank = 5, Semantic Rank = 70. This candidate has strong structured features (title, career, assessments) but below-average embedding similarity. The 85/15 hybrid correctly keeps them in the top-10 rather than letting a mediocre embedding similarity drop them significantly. This demonstrates the hybrid's resilience against noisy embedding signals.
-
-### Why Hybrid Works
-Pure feature ranking misses candidates who describe their work differently (synonym variation). Pure semantic ranking misses candidates with strong objective credentials but atypical text. The hybrid combines both: structured professional facts dominate (85%), while semantic similarity provides a supplementary recall signal (15%).
+```text
+nordak005-redrob-ranker/
+├── app.py                      # Main Streamlit web application & reproducibility sandbox
+├── Dockerfile                  # Self-contained container setup (Offline mode configured)
+├── requirements.txt            # Production dependencies
+├── requirements-dev.txt        # Testing & development dependencies
+├── submission.yaml             # Contest metadata configuration template
+├── submission_metadata.yaml    # Registered participant submission metadata
+├── README.md                   # Project documentation
+├── configs/                    # Environment and validation configuration
+├── data/
+│   ├── raw/                    # Contains raw gzipped candidates dataset (100k rows)
+│   └── sample/                 # Small candidate sample dataset (~20 candidates)
+├── docs/
+│   ├── evaluation_report.md    # Metrics audit, case studies, and hybrid calibration logs
+│   ├── schema_report.md        # Deep-dive dataset schema exploration
+│   └── interview_notes.md      # Architecture and design Q&A notes
+├── models/                     # Cached SentenceTransformer models folder (local inference)
+├── outputs/
+│   ├── final_submission.csv    # Final 100 rows CSV (ranked and validated)
+│   └── hybrid_ranked_debug.csv # Full breakdown scores CSV for auditing
+├── scripts/
+│   ├── generate_submission.py  # Production CLI script to generate the final CSV submission
+│   ├── generate_embeddings.py  # Offline script to precompute candidate embeddings
+│   ├── run_ranker.py           # CLI script to execute the full pipeline on arbitrary files
+│   └── validate_submission.py  # Submission CSV schema and logic validator
+├── src/
+│   ├── embedding_store.py      # Cache manager for precomputed candidate embeddings
+│   ├── features.py             # Feature engineering functions
+│   ├── hybrid_ranker.py        # Core hybrid scorer and sorting logic
+│   ├── reasoning.py            # Natural language rationale builder
+│   ├── semantic_search.py      # Vector similarity utilities
+│   └── submission_validator.py # Internal checker verifying competition rules
+└── tests/                      # pytest unit and smoke tests
+```
 
 ---
 
-## 9. Runtime
+## 5. Installation & Setup
 
-| Step | Time (100k candidates) |
-|---|---|
-| Load JSONL.gz | ~6 s |
-| Feature scoring (all 100k) | ~18 s |
-| Offline MiniLM embedding (all 100k) | ~90 s (CPU batch) — *Run once offline* |
-| Load precomputed embeddings | < 1 s |
-| JD Encoding + Similarity compute | < 2 s |
-| Hybrid ranking + CSV write | < 1 s |
-| **Total Online Runtime** | **< 30 seconds** |
-
-**Submission generation** (`generate_submission.py` — top-100 only): **~6 seconds**
-
----
-
-## 10. Reproducibility
-
-### Environment Setup
+### Local Python Environment
+Prerequisites: Python 3.11 or 3.13 (recommended).
 
 ```powershell
-# Windows (PowerShell)
+# Clone the repository
+git clone https://github.com/nordak005/redrob-ranker.git
+cd redrob-ranker
+
+# Create and activate virtual environment
 python -m venv .venv
+# On Windows (PowerShell):
 .venv\Scripts\Activate.ps1
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### Single-Command Submission
+### Docker Container Setup
+The project is packaged to run in fully isolated environments (offline) without requiring GPU acceleration.
 
+```bash
+# Build the Docker image
+docker build -t redrob-ai .
+```
+
+---
+
+## 6. Running Production Mode
+
+Production Mode processes the full dataset of 100,000 candidates and saves the top-ranked results to the host machine.
+
+### Offline Preprocessing (Run Once)
+Before running the production pipeline locally, generate the candidate embedding cache. (This is baked into the Docker image, so this step is only necessary if running from source code).
+```bash
+python scripts/generate_embeddings.py
+```
+*Creates `data/candidate_embeddings.npy` (NumPy matrix).*
+
+### Reproducing the Submission CSV
+To generate the competition-validated `final_submission.csv` containing the top 100 candidates:
+
+#### 1. CLI Execution (Local)
 ```bash
 python scripts/generate_submission.py
 ```
+*Typical runtime: ~6 seconds. Outputs to `outputs/final_submission.csv`.*
 
-Produces: `outputs/final_submission.csv` (100 rows, < 10 seconds)
-
-### Full Pipeline
-
+#### 2. CLI Execution (Docker Container)
+Run the container in ranker mode (volume mapping maps outputs to the host):
 ```bash
-# Full feature ranking (100k candidates)
-python scripts/run_ranker.py \
-    --input  data/raw/candidates.jsonl.gz \
-    --output outputs/submission.csv \
-    --validate
+docker run --rm -v "${PWD}/outputs:/app/outputs" -e APP=ranker redrob-ai
+```
 
-# Streamlit sandbox
+#### 3. Web UI Application (Local or Docker)
+To launch the interactive, high-performance Streamlit interface:
+```bash
+# Local
 streamlit run app.py
+
+# Docker
+docker run -d -p 8501:8501 --name redrob-ui -v "${PWD}/outputs:/app/outputs" redrob-ai
 ```
-
-### Validation
-
-```bash
-python scripts/validate_submission.py outputs/final_submission.csv
-pytest
-```
-
-### Compute Environment
-
-| Property | Value |
-|---|---|
-| Platform | CPU only |
-| Python | 3.11+ |
-| GPU | Not used |
-| Network during ranking | None (fully offline) |
-| RAM requirement | ~4 GB (16 GB recommended) |
+Open **http://localhost:8501** in your browser.
 
 ---
 
-## 11. Future Work
+## 7. Running Sandbox Mode
 
-1. **Fine-tune MiniLM on Redrob JDs** — domain-adapted embeddings for higher precision
-2. **Learning-to-Rank** — train a LambdaMART model on recruiter feedback signals
-3. **Candidate clustering** — identify diverse archetypes beyond the top-100
-4. **FAISS ANN index** — approximate nearest-neighbor search for 10M+ candidate scale
-5. **Score calibration** — Platt scaling to convert raw scores to calibrated probabilities
-6. **Explainability layer** — per-candidate SHAP values for each scoring component
-7. **Incremental updates** — streaming JSONL ingestion for real-time candidate updates
+Sandbox Mode is designed for evaluation and reproducibility on small candidate datasets.
+
+### Redrob Section 10.5 Compliance
+Per **Redrob Submission Specification Section 10.5**, the hosted sandbox environment only needs to demonstrate reproducibility on a small sample of candidates (≤100). The full 100K evaluation is performed later inside Redrob's private Docker sandbox.
+
+To activate the Sandbox Demo:
+1. Launch the Streamlit Web UI (locally or via Docker).
+2. Toggle the **Execution Mode** radio selector from **Production** to **Sandbox Demo**.
+3. The warning banner will appear: `"This mode is intended for Redrob Hackathon reproducibility (≤100 candidates)."`
+4. Drop or select any candidate `.json` or `.jsonl` file.
+5. Files containing **more than 100 candidates will be rejected** with a friendly validation error, blocking execution. Only files matching the size criteria are parsed and hybrid-ranked.
 
 ---
 
-## File Tree
+## 8. System Performance
 
-```
-project_root/
-├── src/                              # Core library (feature eng, ranking, embeddings)
-├── scripts/
-│   ├── run_ranker.py                 # Full pipeline CLI (100k candidates)
-│   ├── generate_submission.py        # Final submission generator (< 10s)
-│   ├── generate_embeddings.py        # Offline embedding pipeline (run once)
-│   ├── benchmark_embeddings.py       # Embedding benchmark
-│   ├── validate_submission.py        # Competition submission validator
-│   └── ...                          # Utilities and export scripts
-├── tests/
-│   ├── test_validation.py            # Submission format validation tests
-│   ├── test_smoke.py                 # Feature scoring smoke test (sample data)
-│   └── test_hybrid.py               # Hybrid ranker timing test
-├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_real_data_exploration.ipynb
-│   ├── 03_retrieval_signal_audit.ipynb
-│   ├── 04_evaluation.ipynb
-│   ├── 05_final_audit.ipynb
-│   └── 06_hybrid_ranking.ipynb
-├── research/                         # EDA scripts (schema explorer, memory report)
-├── docs/
-│   ├── interview_notes.md            # Technical interview Q&A
-│   ├── evaluation_report.md          # Full evaluation report
-│   └── schema_report.md             # Dataset schema analysis
-├── configs/
-│   └── submission_metadata.yaml      # Submission metadata (fill TODO fields)
-├── outputs/
-│   ├── final_submission.csv          # ← FINAL SUBMISSION (100 rows, hybrid)
-│   ├── submission.csv                # Feature-only ranking (100 rows)
-│   └── ...                          # Performance reports, debug scores
-├── data/
-│   ├── raw/candidates.jsonl.gz       # 100k candidate profiles (gitignored)
-│   └── sample/                       # Sample data for testing
-├── archive/                          # Preserved non-production files
-├── app.py                            # Streamlit sandbox
-├── requirements.txt                  # Runtime dependencies
-├── requirements-dev.txt              # Development dependencies
-├── Dockerfile
-└── README.md
-```
+| Step | Scope | Hardware | Memory | Runtime |
+|---|---|---|---|---|
+| **Embedding Generation** | 100K Profiles | Standard CPU (8-cores) | ~2 GB | ~90 seconds |
+| **Embedding Loading** | 100K Matrices | RAM (Singleton Cache) | ~150 MB | < 1 second |
+| **JD Encoding & Matching**| 100K Embeddings| Standard CPU | - | < 2 seconds |
+| **Feature Engineering** | 100K Profiles | Standard CPU | ~4 GB | ~18 seconds |
+| **Submission Output** | Top 100 | Standard CPU | - | < 1 second |
+| **Full CLI Pipeline** | Top 100 | Standard CPU (Production) | ~4 GB | **~6 seconds** |
+
+---
+
+## 9. Key Design Decisions
+
+- **Why SentenceTransformer `all-MiniLM-L6-v2`?**  
+  At 22 MB, it loads instantly into memory and executes cosine similarities in milliseconds on CPU, satisfying the hackathon's strict compute limits while providing high quality semantic alignment.
+- **Why an 85/15 Hybrid Split?**  
+  We prioritize structured, verifiable professional credentials (experience, assessments, exact titles) over raw semantic matching. This prevents candidate profiles with shallow, keyword-stuffed summaries from ranking above candidates with verified industry accomplishments.
+- **Why Precompute Embeddings Offline?**  
+  Encoding 100K profiles on CPU at query time would take over 20 minutes. Precomputing embeddings compresses runtime into a few seconds, making the system responsive and production-viable.
+- **Why Fully Offline Containerization?**  
+  All models, scripts, and precomputed embeddings are self-contained. No network calls to HuggingFace or external LLM API keys are made, satisfying security and platform-isolation constraints.
+
+---
+
+## 10. Future Improvements
+
+1. **FAISS ANN Indexing**: Implement Approximate Nearest Neighbors using FAISS to scale candidate matching from 100K to 10M+ candidates in sub-millisecond range.
+2. **Incremental Indexing**: Implement streaming vector updates to ingest new candidates and incrementally update the precomputed embedding matrix without full rebuilds.
+3. **Distributed Scoring**: Utilize PySpark or Dask parallel workers to distribute feature scoring and matching across horizontal compute clusters for enterprise scale.
+4. **Learning to Rank (LTR)**: Integrate a LambdaMART or XGBoost ranker trained on historic recruiter feedback data (accept/reject signals) to dynamically adjust feature weights.
+
+---
+
+## 11. License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 12. Acknowledgements
+
+- **Redrob Platform**: For providing the raw candidate profiles and verified assessment scores.
+- **SentenceTransformers**: For the high-performance offline MiniLM model.
+- **Streamlit**: For the interactive dashboard capabilities.
