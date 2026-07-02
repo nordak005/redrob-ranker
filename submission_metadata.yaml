@@ -4,7 +4,7 @@
 # ============================================================================
 # Team identity (Placeholders - Fill in before final portal upload)
 # ============================================================================
-team_name: "<YOUR_TEAM_NAME>"      # e.g., "team_42" (Used on leaderboards)
+team_name: "Team TestSplit"      # e.g., "team_42" (Used on leaderboards)
 
 primary_contact:
   name: Akshay Pratap Singh
@@ -26,7 +26,7 @@ team_members:
 # ============================================================================
 github_repo: "https://github.com/nordak005/redrob-ranker"
 # A working hosted Streamlit Sandbox link for reproducibility evaluation
-sandbox_link: "<YOUR_HOSTED_SANDBOX_LINK>"
+sandbox_link: "https://huggingface.co/spaces/Nordak005/ranking_optimal"
 
 # Single-command final submission generator
 reproduce_command: "python scripts/generate_submission.py"
@@ -53,10 +53,18 @@ ai_tools_used:
   - "GitHub Copilot"                  # Autocomplete
 
 ai_usage_summary: |
-  Used Gemini for code architecture reviews, designing the modular Sandbox Demo
-  execution mode, drafting the evaluation report, and validating the submission
-  formatting. Used GitHub Copilot for code autocomplete. No candidate data was 
-  fed to external LLMs. All scoring logic is deterministic Python.
+  AI assistance (ChatGPT) was used throughout the project as a development copilot.
+  It helped with architecture discussions, algorithm explanations, debugging,
+  Docker containerization, Hugging Face deployment, documentation refinement,
+  UI improvements, code review, and optimization suggestions.
+
+  All major design decisions, implementation, testing, integration, and final
+  validation were performed by the team. AI-generated suggestions were reviewed,
+  modified when necessary, and verified through local testing and deployment
+  before being incorporated into the final submission.
+
+  AI was also used to improve code quality, generate documentation, assist with
+  troubleshooting deployment issues, and enhance the overall developer workflow.
 
 # ============================================================================
 # Methodology summary

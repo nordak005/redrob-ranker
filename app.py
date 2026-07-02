@@ -600,13 +600,14 @@ if "Dashboard" in selected_page:
         """)
     elif _emb_matrix is None:
         render_html("""
-        <div style="background:rgba(251,191,36,0.08);border-bottom:1px solid rgba(251,191,36,0.2);
-                    padding:9px 28px;font-size:0.83rem;color:#fbbf24;
-                    display:flex;align-items:center;gap:8px;font-weight:500;">
-            ⚡ Embedding cache not found — rankings will use live encoding (slower on first run).
-            Run <code>python scripts/generate_embeddings.py</code> offline to pre-build the cache.
-        </div>
-        """)
+    <div style="background:rgba(251,191,36,0.08);border-bottom:1px solid rgba(251,191,36,0.2);
+                padding:9px 28px;font-size:0.83rem;color:#fbbf24;
+                display:flex;align-items:center;gap:8px;font-weight:500;">
+        🛠️ <b style="font-size:0.95rem;">SANDBOX MODE</b> —
+        Live semantic encoding is enabled for demonstration.
+        Supports <b>up to 100 candidates</b>; the first ranking may take a little longer while embeddings are generated automatically.
+    </div>
+    """)
 
     # Success Banner
     if st.session_state.ranked_results:
