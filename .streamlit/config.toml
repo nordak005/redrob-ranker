@@ -1,5 +1,11 @@
 [server]
+# Disable file-watcher: prevents repeated ModuleNotFoundError for torchvision
 fileWatcherType = "none"
+# Required for Hugging Face Spaces (iframe proxy)
+enableCORS = false
+enableXsrfProtection = false
+port = 7860
+headless = true
 
 [logger]
 level = "warning"

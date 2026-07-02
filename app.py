@@ -322,14 +322,25 @@ def render_html(html_str: str):
 
 
 # -- Cached loaders
+# IMPORTANT: These functions are decorated with @st.cache_resource so they execute
+# only ONCE per Streamlit server process. They are called inside the sidebar render
+# block (NOT at module scope) so Streamlit's HTTP server can bind and serve
+# /_stcore/health before any heavy I/O runs. This is the key fix for HF Spaces.
 
-@st.cache_resource(show_spinner="Loading MiniLM model (first run only)...")
+@st.cache_resource(show_spinner="🤖 Loading AI Model...")
 def _load_model():
-    return get_model()
+    """Load MiniLM-L6-v2 from local cache. Returns None on failure (graceful degradation)."""
+    try:
+        return get_model()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Failed to load model: %s", exc)
+        return None
 
 
-@st.cache_resource(show_spinner="Loading precomputed candidate embeddings...")
+@st.cache_resource(show_spinner="💾 Loading Candidate Embeddings...")
 def _load_precomputed_embeddings():
+    """Load precomputed embedding matrix. Returns (None, None, {}, error_str) on failure."""
     try:
         emb  = load_embeddings()
         ids  = get_candidate_ids()
@@ -341,9 +352,9 @@ def _load_precomputed_embeddings():
         return None, None, {}, f"Unexpected error loading embeddings: {exc}"
 
 
-# -- Warm cache
-_model                                           = _load_model()
-_emb_matrix, _emb_ids, _emb_meta, _emb_error   = _load_precomputed_embeddings()
+# NOTE: _model and _emb_matrix are initialized lazily inside the sidebar block below.
+# This allows Streamlit's HTTP server to start and serve /_stcore/health immediately,
+# which is required for Hugging Face Docker Space health checks to pass.
 
 # -- Session state initialization
 if "ranked_results"  not in st.session_state: st.session_state.ranked_results  = None
@@ -366,6 +377,13 @@ if "multiplier_behav"      not in st.session_state: st.session_state.multiplier_
 # SIDEBAR
 # =====================================================================
 with st.sidebar:
+    # ── Lazy resource initialization ─────────────────────────────────────────
+    # Called here (not at module scope) so the HTTP server is already listening.
+    # @st.cache_resource guarantees each function executes only once per process.
+    _model = _load_model()
+    _emb_matrix, _emb_ids, _emb_meta, _emb_error = _load_precomputed_embeddings()
+    # ─────────────────────────────────────────────────────────────────────────
+
     render_html("""
     <div class="sb-logo">
         <div class="sb-logo-brand">🤖 Redrob<br>Ranker</div>
@@ -471,7 +489,10 @@ def run_custom_ranking(candidates_list, aligned_embeddings, top_n_count):
     # Max possible raw score
     max_semantic = w_title + w_career + w_retrieval + w_assessment + w_skill
 
-    # Base JD embedding
+    # Base JD embedding — guard against model load failure
+    if _model is None:
+        st.error("❌ AI model is not loaded. Cannot rank candidates. Check logs for details.")
+        return []
     _jd_emb = get_jd_embedding(_model, JD_TEXT)
 
     scored_cands = []
@@ -566,6 +587,26 @@ def run_custom_ranking(candidates_list, aligned_embeddings, top_n_count):
 # ⊞ DASHBOARD PAGE
 # -----------------
 if "Dashboard" in selected_page:
+
+    # Initializing banner — shown only when model failed to load
+    if _model is None:
+        render_html("""
+        <div style="background:rgba(248,113,113,0.08);border-bottom:1px solid rgba(248,113,113,0.2);
+                    padding:9px 28px;font-size:0.83rem;color:#f87171;
+                    display:flex;align-items:center;gap:8px;font-weight:500;">
+            ❌ AI model failed to load. Ranking is disabled.
+            Check that <code>models/</code> is present or allow network access for first-time download.
+        </div>
+        """)
+    elif _emb_matrix is None:
+        render_html("""
+        <div style="background:rgba(251,191,36,0.08);border-bottom:1px solid rgba(251,191,36,0.2);
+                    padding:9px 28px;font-size:0.83rem;color:#fbbf24;
+                    display:flex;align-items:center;gap:8px;font-weight:500;">
+            ⚡ Embedding cache not found — rankings will use live encoding (slower on first run).
+            Run <code>python scripts/generate_embeddings.py</code> offline to pre-build the cache.
+        </div>
+        """)
 
     # Success Banner
     if st.session_state.ranked_results:

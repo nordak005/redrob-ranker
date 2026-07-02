@@ -7,23 +7,24 @@
 team_name: "<YOUR_TEAM_NAME>"      # e.g., "team_42" (Used on leaderboards)
 
 primary_contact:
-  name: "<YOUR_PRIMARY_CONTACT_NAME>"
-  email: "<YOUR_PRIMARY_CONTACT_EMAIL>"
-  phone: "<YOUR_PRIMARY_CONTACT_PHONE>"
+  name: Akshay Pratap Singh
+  email: ps475182@gmail.com
+  phone: 8874937225
 
 team_members:
-  - name: "<YOUR_MEMBER_NAME_1>"
-    email: "<YOUR_MEMBER_EMAIL_1>"
+  - name: Pranjul Tiwari
+    email: pt3134@srmist.edu.in
     role: "ML Engineer"
-  # Add more members below if working in a team:
-  # - name: "<YOUR_MEMBER_NAME_2>"
-  #   email: "<YOUR_MEMBER_EMAIL_2>"
-  #   role: "Software Engineer"
+
+team_members:
+  - name: Krishkant Rai
+    email: krishkantrai@srmist.edu.in
+    role: "front-end"
 
 # ============================================================================
 # Code and reproducibility
 # ============================================================================
-github_repo: "<YOUR_GITHUB_REPOSITORY_URL>"
+github_repo: "https://github.com/nordak005/redrob-ranker"
 # A working hosted Streamlit Sandbox link for reproducibility evaluation
 sandbox_link: "<YOUR_HOSTED_SANDBOX_LINK>"
 
