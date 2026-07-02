@@ -160,7 +160,20 @@ The project is packaged to run in fully isolated environments (offline) without 
 # Build the Docker image
 docker build -t redrob-ai .
 ```
+OR(prefered)
+## Docker Deployment
 
+### Pull Docker Image
+
+```bash
+docker pull nordak005/redrob-ai:v1.1
+```
+
+### Run Locally
+
+```bash
+docker run -p 8501:8501 nordak005/redrob-ai:v1.1
+```
 ---
 
 ## 6. Running Production Mode
