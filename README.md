@@ -221,7 +221,7 @@ Open **http://localhost:7860** in your browser.
 
 ---
 
-## 7. Running Sandbox Mode
+## 7. Running Sandbox Mode( Deployed on hugging face)
 
 Sandbox Mode is designed for evaluation and reproducibility on small candidate datasets.
 
