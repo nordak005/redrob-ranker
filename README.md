@@ -160,8 +160,8 @@ The project is packaged to run in fully isolated environments (offline) without 
 # Build the Docker image
 docker build -t redrob-ai .
 ```
-OR(prefered)
-## Docker Deployment
+OR
+## Docker Deployment((prefered)
 
 ### Pull Docker Image
 
