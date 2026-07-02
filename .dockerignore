@@ -23,7 +23,7 @@ __pycache__/
 venv/
 env/
 models/
-
+redrob-ai-ranker/
 # Research and notebooks
 archive/
 research/
