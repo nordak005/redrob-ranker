@@ -38,15 +38,16 @@ EXPOSE 8501
 
 # Healthcheck for the Streamlit service
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+    CMD sh -c 'PORT=${PORT:-8501}; curl -f http://localhost:${PORT}/_stcore/health || exit 1'
 
 # Launch script
 CMD ["sh", "-c", "\
+    PORT=${PORT:-8501}; \
     if [ \"$APP\" = \"ranker\" ]; then \
         python scripts/generate_submission.py; \
     else \
         streamlit run app.py \
-            --server.port=8501 \
+            --server.port=${PORT} \
             --server.address=0.0.0.0 \
             --server.headless=true \
             --browser.gatherUsageStats=false; \
