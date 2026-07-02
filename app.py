@@ -1338,7 +1338,7 @@ render_html("""
     <div class="ft-right">
         <span class="ft-link">Privacy Policy</span>
         <span class="ft-link">Terms of Service</span>
-        <div class="ft-api"><div class="ft-dot"></div> API Status</div>
+        <div class="ft-api"><div class="ft-dot"></div> </div>
     </div>
 </div>
 """)
