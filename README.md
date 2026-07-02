@@ -19,6 +19,8 @@ This repository implements a production-grade **Hybrid Ranker** combining:
 2. **Semantic Similarity Search (15%)**: A sentence-embedding similarity scoring layer based on the `all-MiniLM-L6-v2` transformer model, mapping the candidate's holistic profile text to the Job Description (JD).
 
 ---
+<img width="1896" height="900" alt="image" src="https://github.com/user-attachments/assets/321bede9-e8c4-4e9a-b341-192b9c4f4f36" />
+
 
 ## 2. Architecture & Pipeline
 
@@ -85,6 +87,9 @@ For each of the top 100 candidates, the ranker synthesizes a natural language ra
 - Verified platform assessment highlights.
 - Domain fit (retrieval systems, semantic search, etc.).
 - Critical behavioral signals (such as short notice periods or high responsiveness).
+---
+<img width="1905" height="892" alt="image" src="https://github.com/user-attachments/assets/3f9b3e78-9241-4d99-94b1-7e0818cfd3a5" />
+---
 
 ### 💾 Caching & Performance Optimizations
 - **Streamlit `@st.cache_resource`**: Caches the SentenceTransformer model and precomputed embedding matrix in RAM, ensuring zero reload overhead across frontend user interactions.
@@ -152,6 +157,7 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 ```
+<img width="865" height="643" alt="image" src="https://github.com/user-attachments/assets/dd3b7a6d-2701-4161-9775-320812d98105" />
 
 ### Docker Container Setup
 The project is packaged to run in fully isolated environments (offline) without requiring GPU acceleration.
@@ -161,7 +167,7 @@ The project is packaged to run in fully isolated environments (offline) without 
 docker build -t redrob-ai .
 ```
 OR
-## Docker Deployment((prefered)
+## Docker Deployment((preferred)
 
 ### Pull Docker Image
 
@@ -172,7 +178,7 @@ docker pull nordak005/redrob-ai:v1.1
 ### Run Locally
 
 ```bash
-docker run -p 8501:8501 nordak005/redrob-ai:v1.1
+docker run -p 7860:7860 nordak005/redrob-ai:v1.1
 ```
 ---
 
@@ -209,9 +215,9 @@ To launch the interactive, high-performance Streamlit interface:
 streamlit run app.py
 
 # Docker
-docker run -d -p 8501:8501 --name redrob-ui -v "${PWD}/outputs:/app/outputs" redrob-ai
+docker run -d -p 7860:7860 --name redrob-ui -v "${PWD}/outputs:/app/outputs" redrob-ai
 ```
-Open **http://localhost:8501** in your browser.
+Open **http://localhost:7860** in your browser.
 
 ---
 
@@ -221,6 +227,9 @@ Sandbox Mode is designed for evaluation and reproducibility on small candidate d
 
 ### Redrob Section 10.5 Compliance
 Per **Redrob Submission Specification Section 10.5**, the hosted sandbox environment only needs to demonstrate reproducibility on a small sample of candidates (≤100). The full 100K evaluation is performed later inside Redrob's private Docker sandbox.
+```bash
+https://huggingface.co/spaces/Nordak005/ranking_optimal
+```
 
 To activate the Sandbox Demo:
 1. Launch the Streamlit Web UI (locally or via Docker).
@@ -230,6 +239,8 @@ To activate the Sandbox Demo:
 5. Files containing **more than 100 candidates will be rejected** with a friendly validation error, blocking execution. Only files matching the size criteria are parsed and hybrid-ranked.
 
 ---
+
+<img width="1898" height="896" alt="image" src="https://github.com/user-attachments/assets/929a61c1-70d4-476d-8963-3edcf8a114fa" />
 
 ## 8. System Performance
 
@@ -265,14 +276,31 @@ To activate the Sandbox Demo:
 4. **Learning to Rank (LTR)**: Integrate a LambdaMART or XGBoost ranker trained on historic recruiter feedback data (accept/reject signals) to dynamically adjust feature weights.
 
 ---
+## 🤖 AI-Assisted Development
 
-## 11. License
+Throughout the development of **RedRob AI Ranker**, OpenAI ChatGPT was used as an engineering copilot to accelerate development and improve software quality.
+```bash
+AI assistance was primarily used for:
+- Designing and refining the system architecture
+- Debugging complex implementation and deployment issues
+- Optimizing Docker and Hugging Face deployment
+- Reviewing code and suggesting performance improvements
+- Enhancing the UI/UX and user feedback
+- Preparing technical documentation and project reports
+```
+
+All architectural decisions, implementation, integration, testing, and final validation were performed by the development team. Every AI-generated suggestion was critically reviewed, adapted where necessary, and verified through local testing and production deployment before being incorporated into the final project.
+
+**Outcome:** AI significantly reduced development and debugging time, enabling faster iteration while maintaining complete human oversight over the final solution.
+---
+
+## 12. License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-## 12. Acknowledgements
+## 13. Acknowledgements
 
 - **Redrob Platform**: For providing the raw candidate profiles and verified assessment scores.
 - **SentenceTransformers**: For the high-performance offline MiniLM model.
