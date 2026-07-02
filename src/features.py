@@ -28,8 +28,7 @@ the final formula is applied.
 from __future__ import annotations
 
 import math
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 # ---------------------------------------------------------------------------
 # Canonical title taxonomy

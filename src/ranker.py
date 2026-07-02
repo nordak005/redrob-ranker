@@ -19,7 +19,7 @@ Performance notes:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List
 
 from src.features import build_final_score, build_reasoning
 

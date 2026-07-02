@@ -257,7 +257,7 @@ def hybrid_rank(
     else:
         # Try to look up from the precomputed embedding store
         try:
-            from src.embedding_store import load_embeddings, get_candidate_ids, EmbeddingStoreError
+            from src.embedding_store import load_embeddings, get_candidate_ids
             store_emb = load_embeddings()           # (N_total, 384)
             store_ids = get_candidate_ids()         # (N_total,)
             id_to_idx = {str(sid): i for i, sid in enumerate(store_ids)}

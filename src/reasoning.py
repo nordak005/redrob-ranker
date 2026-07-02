@@ -148,7 +148,6 @@ def build_reasoning(candidate: Dict[str, Any], scores: Dict[str, float]) -> str:
     years_exp: float = float(profile.get("years_of_experience", 0))
     ai_roles: int = _count_ai_roles(career_history)
 
-    retrieval_score: float = scores.get("retrieval_score", 0.0)
     assessment_score: float = scores.get("assessment_score", 0.0)
     notice_days: int = int(signals.get("notice_period_days", 90))
     rrr: float = float(signals.get("recruiter_response_rate", 0.5))

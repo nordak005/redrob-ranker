@@ -38,7 +38,7 @@ os.environ.setdefault("SENTENCE_TRANSFORMERS_HOME", _LOCAL_MODEL_DIR)
 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 
 from src.embedding_store import load_embeddings, get_candidate_ids, EmbeddingStoreError
-from src.hybrid_ranker   import get_model, get_jd_embedding, JD_TEXT
+from src.hybrid_ranker   import get_model, JD_TEXT
 
 
 # ---------------------------------------------------------------------------
