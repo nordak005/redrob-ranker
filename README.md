@@ -184,30 +184,77 @@ docker run -p 7860:7860 nordak005/redrob-ai:v1.1
 
 ## 6. Running Production Mode
 
-Production Mode processes the full dataset of 100,000 candidates and saves the top-ranked results to the host machine.
+Production Mode processes the complete dataset of **100,000 candidates** and generates the competition-ready submission containing the **Top 100 ranked candidates**.
 
-### Offline Preprocessing (Run Once)
-Before running the production pipeline locally, generate the candidate embedding cache. (This is baked into the Docker image, so this step is only necessary if running from source code).
-```bash
-python scripts/generate_embeddings.py
-```
-*Creates `data/candidate_embeddings.npy` (NumPy matrix).*
+### Automatic Embedding Management
 
-### Reproducing the Submission CSV
-To generate the competition-validated `final_submission.csv` containing the top 100 candidates:
+The production pipeline requires a semantic embedding cache.
 
-#### 1. CLI Execution (Local)
+Simply run:
+
 ```bash
 python scripts/generate_submission.py
 ```
-*Typical runtime: ~6 seconds. Outputs to `outputs/final_submission.csv`.*
 
-#### 2. CLI Execution (Docker Container)
-Run the container in ranker mode (volume mapping maps outputs to the host):
-```bash
-docker run --rm -v "${PWD}/outputs:/app/outputs" -e APP=ranker redrob-ai
+If the embedding cache is already available, the submission generation starts immediately.
+
+If the cache is missing, an interactive menu is displayed:
+
+```
+Embedding cache not found.
+
+Choose one option:
+
+[1] Download Official Embeddings (Recommended ⚡)
+    • Fastest setup (~1 minute)
+    • Downloads the official precomputed embedding package
+    • Automatically extracts it into the correct location
+
+[2] Generate Embeddings Locally
+    • No download required
+    • Uses the local SentenceTransformer model
+    • Recommended for offline environments
+    • May take longer depending on hardware
+
+[3] Exit
 ```
 
+### Generate the Competition Submission
+
+After the embeddings are available (downloaded or generated automatically), the pipeline continues without any additional commands.
+
+```bash
+python scripts/generate_submission.py
+```
+
+Typical execution time:
+
+- **With precomputed embeddings:** ~6 seconds
+- **First-time setup (download):** ~1 minute
+- **First-time setup (local generation):** Depends on hardware and dataset size
+
+The generated submission is saved to:
+
+```
+outputs/final_submission.csv
+```
+
+---
+
+### Running Inside Docker
+
+```bash
+docker run --rm \
+    -v "${PWD}/outputs:/app/outputs" \
+    nordak005/redrob-ai:v1.2
+```
+
+The Docker container follows the same workflow:
+
+- Detects existing embeddings automatically.
+- Prompts to download the official embedding package if missing.
+- Falls back to local embedding generation if preferred.
+- Produces the final submission in the mounted `outputs/` directory.
 #### 3. Web UI Application (Local or Docker)
 To launch the interactive, high-performance Streamlit interface:
 ```bash
