@@ -66,6 +66,7 @@ data/raw/candidates.jsonl.gz
 data/*.npy
 data/*.npz
 data/*.pkl
+data/embedding.zip.zip
 
 # ==============================================================================
 # Outputs — large generated files
